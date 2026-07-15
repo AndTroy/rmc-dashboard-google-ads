@@ -615,7 +615,7 @@
       <div class="kpi-card highlight">
         <div class="kpi-label">Store Visits</div>
         <div class="kpi-value" id="kpiSV">—</div>
-        <div class="kpi-sub">Total estimated visits</div>
+        <div class="kpi-sub">Reported (÷2 from Google Ads)</div>
       </div>
       <div class="kpi-card highlight">
         <div class="kpi-label">Cost per Store Visit</div>
@@ -795,6 +795,10 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 // Columns Google Sheets may export with $, commas, or % formatting
 var NUM_COLS = ['Cost','Impressions','Avg. CPM','Clicks','Cost Per Click','CTR (%)','Store Visits'];
 
+// Store visits are divided by this factor for external reporting.
+// Raw Google Ads numbers remain in the sheet; the transform is applied here only.
+var SV_DIVISOR = 2;
+
 function cleanRow(r) {
   NUM_COLS.forEach(function(col) {
     if (r[col] !== undefined && r[col] !== null) {
@@ -802,6 +806,9 @@ function cleanRow(r) {
       r[col] = v === '' ? 0 : (parseFloat(v) || 0);
     }
   });
+  if (r['Store Visits'] !== undefined) {
+    r['Store Visits'] = r['Store Visits'] / SV_DIVISOR;
+  }
   return r;
 }
 
