@@ -662,19 +662,21 @@
         <div class="chat-header-icon">💬</div>
         <div class="chat-header-info">
           <h3>Ask About Your Data</h3>
-          <p>Get instant answers about performance, store visits, spend efficiency, and more</p>
+          <p>Ask about performance, benchmarks, seasonality, active tests, RMC assignments, and more</p>
         </div>
       </div>
       <div class="chat-messages" id="chatMessages">
         <div class="msg bot">Hi! Ask me anything about your Google Ads data — store visits, spend, account comparisons, monthly trends, or cost efficiency.</div>
       </div>
       <div class="chat-suggestions">
-        <span class="suggestion-chip" onclick="askChip(this)">What's our total spend?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Which account has the most store visits?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What's our cost per store visit?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Which month had the best performance?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Which account is most efficient?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Give me a full summary</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Which account is most efficient?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What's our cost per store visit?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What are the active tests?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What's the benchmark for cost per visit?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Why are visits low in winter?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Who are the RMCs?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">How many locations by region?</span>
       </div>
       <div class="chat-input-row">
         <input type="text" class="chat-input" id="chatInput"
@@ -1136,9 +1138,167 @@ function addMsg(text, role) {
 }
 
 function answer(message) {
-  if (!filteredData.length) return "No data loaded yet. Upload your CSV first.";
-
   var m = message.toLowerCase();
+
+  // ═══════════════════════════════════════════════════════════════
+  //  REFERENCE CONTEXT  (no loaded data required)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Seasonality
+  if (m.includes('season') || m.includes('time of year') ||
+      (m.includes('why') && (m.includes('low') || m.includes('slow') || m.includes('down') || m.includes('high') || m.includes('peak'))) ||
+      m.includes('january') || m.includes('november') || m.includes('spring') ||
+      m.includes('winter') || m.includes('pollen') || m.includes('pattern')) {
+    return 'Wash volume follows a consistent seasonal pattern across the network:\n' +
+      '• March and May: ~10-12% above the annual monthly average (post-winter grime + pollen season)\n' +
+      '• April and June: ~5% above average\n' +
+      '• July through October, December: near average\n' +
+      '• November and January: 14-15% below average — the softest months of the year\n\n' +
+      'This pattern has held across all five years of data. Lower store visit counts in November and January reflect seasonality, not underperformance.';
+  }
+
+  // Attribution lag
+  if (m.includes('attribution') || m.includes('lag') || m.includes('7-day') ||
+      (m.includes('recent') && (m.includes('accurate') || m.includes('complete') || m.includes('trust') || m.includes('incomplete')))) {
+    return 'Store visit data in Google Ads carries an attribution lag of up to 7 days. The most recent week of store visit figures should be treated as incomplete — they will increase as attribution catches up. Wait at least one full week before drawing conclusions from the most recent dates. This lag does not affect older data.';
+  }
+
+  // Active tests
+  if (m.includes('active test') || m.includes('running test') || m.includes('experiment') ||
+      m.includes('first wash free') || m.includes(' fwf') || m.includes('apple maps') ||
+      (m.includes('zip') && m.includes('target')) ||
+      (m.includes('test') && (m.includes('target cpa') || m.includes('current') || m.includes('active') || m.includes('running') || m.includes('what')))) {
+    return 'Active tests as of July 2026:\n\n' +
+      '1. Target CPA ($2.10) — since April 22. Applied to underperforming PMax sites. Currently active: CO35, IL125, MI147, MI214, MI421, MI425, MN108, MN378, IA94, FL347, TX417, TX359, OK90, TX34. Improves efficiency but risks underspending; best as a short-term intervention, not a permanent setting.\n\n' +
+      '2. First Wash Free asset group — since June 1. Adds an FWF asset group alongside the standard store visit group (not replacing it). Results through July 6: $1.95 CPA for additive group vs. $2.73 for replacement group and $2.67 for control. Recommendation: add alongside, do not replace.\n\n' +
+      '3. ZIP Code vs. Radius targeting — since June 15. Testing zip-code targeting against standard radius-based geo. Site IDs not yet documented.\n\n' +
+      '4. FMF vs. FWF vs. Site Visit CPA comparison — early planning stage, July 2026. Parallel Meta SMS test in scope.\n\n' +
+      '5. Apple Maps Ads pilot — planned late summer 2026. Target markets: DFW, El Paso, Omaha, select Florida, possibly Charlotte. Not yet launched.\n\n' +
+      '6. Demand Gen for pre-opening locations — pending approval, not yet launched.';
+  }
+
+  // Benchmarks / thresholds
+  if (m.includes('benchmark') || m.includes('threshold') || m.includes('red flag') ||
+      m.includes('kpi') || m.includes('healthy') || m.includes('what should') ||
+      m.includes('should be') || m.includes('quality score') || m.includes('impression share') ||
+      (m.includes('good') && (m.includes('cost') || m.includes('ctr') || m.includes('conversion rate') || m.includes('quality')))) {
+    return 'Performance benchmarks:\n\n' +
+      'Performance Max:\n' +
+      '• Cost per store visit: red flag above $15; investigate if cost rises 30%+ month-over-month\n' +
+      '• Store visit conversion rate: healthy 5-20%; below 3% = geographic or intent mismatch\n' +
+      '• CTR (blended): healthy 0.5-3%; below 0.3% = review creative assets\n' +
+      '• Asset group strength: aim for Good or Excellent; Poor = add assets, especially video\n\n' +
+      'Search:\n' +
+      '• CTR: healthy 3-10%; below 2% = ad relevance issue; above 12% may indicate brand traffic\n' +
+      '• Cost per click: $1-$6 (varies by market)\n' +
+      '• Conversion rate: 3-8%\n' +
+      '• Quality Score: 7 or higher\n' +
+      '• Impression share: above 60%; below 40% = budget-constrained or bids too low\n\n' +
+      'For struggling sites, the Target CPA test sets $2.10 as the intervention target — not a network-wide expectation.';
+  }
+
+  // Campaign types
+  if (m.includes('campaign type') || m.includes('what type') || m.includes('what kind') ||
+      m.includes('search campaign') || m.includes('video campaign') || m.includes('demand gen campaign') ||
+      (m.includes('performance max') && !m.includes('cost') && !m.includes('spend') && !m.includes('visit') && !m.includes('result') && !m.includes('how'))) {
+    return 'Campaign types in the Brand Fund accounts:\n' +
+      '• Performance Max — bid: Maximize Conversions, goal: Store Visits. Core type for all locations.\n' +
+      '• Search — bid: Maximize Conversions, goal: FMF Claims (First Month Free). Store Visits tracked as secondary.\n' +
+      '• Video — goal: Store Visits. Seasonal; not running year-round.\n' +
+      '• Display — goals: Submit Lead Form, Page View.\n' +
+      '• Demand Gen — goal: Page Views.';
+  }
+
+  // Conversion / FMF definitions
+  if (m.includes('fmf') || m.includes('first month free') ||
+      (m.includes('what is') && !m.includes('our') && (m.includes('store visit') || m.includes('conversion'))) ||
+      (m.includes('conversion') && (m.includes('mean') || m.includes('definition') || m.includes('count as') || m.includes('type') || m.includes('kind')))) {
+    return 'Conversion definitions by campaign type:\n' +
+      '• Performance Max: Store Visits — a physical visit to a wash location within the attribution window\n' +
+      '• Search: FMF Claims primary — customer completes a First Month Free membership sign-up. Store Visits tracked as secondary.\n' +
+      '• Video: VideoCompleted - Segment (watched to completion), VideoSkipped - Segment (ad skipped)\n\n' +
+      'These are not combined into a blended total — always check which campaign type you are evaluating.\n\n' +
+      'Note: First Month Free asset groups were discontinued at the start of 2026 to focus on store visit efficiency. Relevant for year-over-year comparisons.';
+  }
+
+  // How metrics are calculated
+  if ((m.includes('how') && m.includes('calculated')) ||
+      (m.includes('how') && m.includes('defined') && !m.includes('campaign')) ||
+      m.includes('reporting definition') ||
+      (m.includes('how do') && m.includes('measure'))) {
+    return 'Key metric definitions:\n' +
+      '• Cost per Store Visit = total spend ÷ total store visits\n' +
+      '• Cost per FMF Claim = total Search spend ÷ total FMF Claims\n' +
+      '• Network-wide totals = summed across all 6 regional Brand Fund accounts (Google Ads does not natively aggregate MCC-level data)\n' +
+      '• Budget: tracked externally at $250/location/month standard; increments invoiced separately';
+  }
+
+  // RMC assignments
+  if (m.includes('rmc') || m.includes('regional marketing') || m.includes('coordinator') ||
+      m.includes('who manages') || m.includes('who handles') || m.includes('who is responsible')) {
+    if (m.includes('erik') || m.includes('durham')) {
+      return 'Erik Durham manages Southeast and Southwest locations plus select others: AL374, AZ (217, 452, 453), FL (08, 105, 138, 183, 193, 194, 20, 207, 21, 216, 28, 31, 332, 333, 340, 344, 346, 347, 350, 356, 380, 383, 409, 413, 415, 437, 57, 74), GA (212, 26, 419, 42, 61, 75), IN403, LA (114, 118, 144, 27, 92), MI (166, 170, 208, 229), MS349, NC (130, 205, 477), NM113, OK (117, 121, 157, 167, 168, 209, 330, 342, 393), SC (126, 479), TN (180, 182, 192, 29, 89), TX (111, 154, 160, 17, 175, 190, 215, 34, 358, 359, 364, 412, 429, 451, 480, 72), UT426. Note: FR357 and ON203 are also assigned but are international sites.';
+    }
+    if (m.includes('emily') || m.includes('lenau')) {
+      return 'Emily Lenau manages Midwest locations: DE (112, 66), IA (150, 36, 377, 69, 81, 82, 87, 94), IL (125, 164, 188, 348, 54, 99), IN25, MI (124, 147, 159, 176, 185, 210, 23, 341, 345, 355, 386, 443, 470, 48, 481), MN (108, 116, 173, 362, 378, 407, 408, 438, 83, 88), MO (156, 218, 58, 77), ND (132, 354, 360, 361), OH (134, 433, 449), PA (123, 135, 343, 372, 467), SD165, VA (115, 12, 220, 424, 76), WI (141, 184, 334, 382, 418, 454, 70, 71), WY201.';
+    }
+    if (m.includes('joel') || m.includes('fullmer')) {
+      return 'Joel Fullmer manages: MD (213, 366, 369, 435), NC (45, 62), NE (10, 379, 39, 441, 444, 458, 461, 465, 79), OH (471, 472, 473, 474, 475), OK (204, 442, 476), PA (337, 368, 464, 93), SC (339, 371, 411, 430, 440, 63), TX (07, 221, 370, 399, 417, 428, 431, 432, 445, 463), UT414, VA162.';
+    }
+    if (m.includes('matt') || m.includes('witkowski')) {
+      return 'Matt Witkowski manages West and Central: AK (401, 402), AR67, CA (09, 102, 136, 140, 149, 178), CO (30, 338, 35, 394), IA163, ID (158, 169, 416, 53), KS (05, 104, 13, 153, 16, 197, 200, 222, 434, 60, 64), KY422, NE (151, 161, 335, 43, 455, 457, 52, 85), NV (137, 15, 202, 478), OK (84, 90, 336), TX (122, 131, 133, 145, 174, 353, 400, 406, 410, 420, 98), WA (228, 363, 390), WY110.';
+    }
+    if (m.includes('megan') || m.includes('meerman')) {
+      return 'Megan Meerman manages: FL331, MI (03, 11, 214, 223, 224, 32, 37, 376, 381, 391, 421, 423, 425), OH40.';
+    }
+    return 'Five RMCs manage the Brand Fund network:\n' +
+      '• Erik Durham — Southeast, Southwest, and others (largest portfolio)\n' +
+      '• Emily Lenau — Midwest\n' +
+      '• Joel Fullmer — Northeast, Mid-Atlantic, and others\n' +
+      '• Matt Witkowski — West and Central\n' +
+      '• Megan Meerman — Michigan and Ohio subset\n\n' +
+      'Ask about a specific RMC by name to see their site list.';
+  }
+
+  // Region / location counts
+  if ((m.includes('how many') && (m.includes('location') || m.includes('site') || m.includes('store') || m.includes('account'))) ||
+      m.includes('region size') || m.includes('largest region') || m.includes('smallest region') ||
+      m.includes('by region') || (m.includes('how big') && m.includes('region'))) {
+    return 'Active V4 location counts by region:\n' +
+      '• Midwest: 81 (IL, IN, IA, MI, MN, MO, OH, WI)\n' +
+      '• Southeast: 66 (AL, AR, FL, GA, LA, MS, NC, SC, TN)\n' +
+      '• Southwest: 54 (TX, AZ, NM, OK and surrounding)\n' +
+      '• Central: 40 (CO, ID, KS, NE, ND, SD, UT, WY)\n' +
+      '• Northeast: 17 (DE, MD, PA, VA)\n' +
+      '• West: 9 (AK, CA, NV)\n\n' +
+      'Total managed accounts: 9 (6 regional Brand Fund + Agency + Brand Fund + Canada).';
+  }
+
+  // Budget per location
+  if (m.includes('$250') ||
+      (m.includes('budget') && (m.includes('per location') || m.includes('each location') || m.includes('standard') || m.includes('baseline') || m.includes('location')))) {
+    return 'Standard monthly budget: $250 per participating location, funding one Performance Max campaign. Franchise partners may invest additional spend above this baseline (invoiced monthly). At the standard rate across ~266 locations, the baseline network budget is approximately $66,500/month. All accounts use unlimited account-level spending — control is at the campaign level. Reconciliation is tracked in an external spreadsheet.';
+  }
+
+  // Campaign naming convention
+  if (m.includes('naming convention') || m.includes('campaign naming') ||
+      (m.includes('naming') && m.includes('structure')) ||
+      (m.includes('how are') && m.includes('named')) ||
+      (m.includes('name') && (m.includes('format') || m.includes('convention')))) {
+    return 'Campaign naming convention for the 6 regional Brand Fund accounts:\n' +
+      '[Version] | Brand Fund | [Region] | [Store ID] | [Campaign Type] | [Internal Descriptor]\n\n' +
+      'Example: "V4 | Brand Fund | West | AK401 | Performance Max"\n\n' +
+      '• Version: currently V4 (V2 and V3 still exist in West account)\n' +
+      '• Store ID: state abbreviation + store number (KS16 = Kansas store 16)\n' +
+      '• Internal descriptor: encodes fiscal quarter, year, and conversion goal\n' +
+      '• Agency account: uses "Agency" instead of "Brand Fund," drops the region, adds flight dates\n' +
+      '• Canada: independent, simpler naming format';
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  DATA-DEPENDENT ANSWERS
+  // ═══════════════════════════════════════════════════════════════
+  if (!filteredData.length) return "No data loaded yet. Upload your CSV to get performance data — or ask about benchmarks, tests, seasonality, campaign types, or RMC assignments.";
 
   var totalCost  = sumCol(filteredData, 'Cost');
   var totalSV    = sumCol(filteredData, 'Store Visits');
@@ -1150,7 +1310,7 @@ function answer(message) {
   var accounts   = unique(filteredData, 'Account Name');
   var months     = unique(filteredData, 'Month').sort();
 
-  // ── Summary ─────────────────────────────────────────────
+  // Summary
   if (m.includes('summary') || m.includes('overview') || m.includes('full summary') ||
       m.includes('how are we') || m.includes('overall')) {
     return (
@@ -1164,14 +1324,14 @@ function answer(message) {
     );
   }
 
-  // ── Total spend ──────────────────────────────────────────
+  // Total spend
   if ((m.includes('total') || m.includes('how much')) &&
       (m.includes('spend') || m.includes('spent') || m.includes('cost') || m.includes('budget'))) {
     return 'Total spend in the selected period: $' + fmt$(totalCost) + ' across ' +
       months.length + ' month' + (months.length>1?'s':'') + '.';
   }
 
-  // ── Cost per visit ───────────────────────────────────────
+  // Cost per visit
   if (m.includes('cost per') || (m.includes('cost') && m.includes('visit'))) {
     if (cpv > 0)
       return 'Cost per store visit: $' + cpv.toFixed(2) +
@@ -1179,7 +1339,7 @@ function answer(message) {
     return 'No store visit data in the current filter to calculate cost per visit.';
   }
 
-  // ── Store visits total ───────────────────────────────────
+  // Store visits total
   if (m.includes('store visit') || (m.includes('visit') && !m.includes('cost'))) {
     if (totalSV === 0)
       return 'No store visit data found in the current filter. Check that your CSV contains the "Store Visits" column with non-zero values.';
@@ -1189,7 +1349,7 @@ function answer(message) {
       monthLabel(bestSVMonth) + ' (' + numFmt(Math.round(svByMonth[bestSVMonth])) + ' visits).';
   }
 
-  // ── Best / top account ──────────────────────────────────
+  // Best / top account
   if ((m.includes('best') || m.includes('top') || m.includes('most')) && m.includes('account')) {
     var svByAcc = groupSum(filteredData, 'Account Name', 'Store Visits');
     var bestAcc = Object.keys(svByAcc).sort(function(a,b){ return svByAcc[b]-svByAcc[a]; })[0];
@@ -1198,7 +1358,7 @@ function answer(message) {
       ' with ' + numFmt(Math.round(svByAcc[bestAcc])) + ' visits.';
   }
 
-  // ── Most efficient account ───────────────────────────────
+  // Most efficient account
   if (m.includes('efficient') || m.includes('best value') ||
       (m.includes('lowest') && m.includes('cost'))) {
     var costByAcc3 = groupSum(filteredData, 'Account Name', 'Cost');
@@ -1212,7 +1372,7 @@ function answer(message) {
       ' at $' + (costByAcc3[best]/svByAcc3[best]).toFixed(2) + ' per store visit.';
   }
 
-  // ── Best month ───────────────────────────────────────────
+  // Best month
   if ((m.includes('best') || m.includes('top') || m.includes('strongest')) && m.includes('month')) {
     var svM = groupSum(filteredData, 'Month', 'Store Visits');
     var bm  = Object.keys(svM).sort(function(a,b){ return svM[b]-svM[a]; })[0];
@@ -1221,7 +1381,7 @@ function answer(message) {
       ' with ' + numFmt(Math.round(svM[bm])) + ' visits.';
   }
 
-  // ── Worst month ──────────────────────────────────────────
+  // Worst month
   if ((m.includes('worst') || m.includes('lowest') || m.includes('weakest')) && m.includes('month')) {
     var svM2 = groupSum(filteredData, 'Month', 'Store Visits');
     var wm   = Object.keys(svM2).filter(function(k){ return svM2[k]>0; })
@@ -1231,7 +1391,7 @@ function answer(message) {
       ' with ' + numFmt(Math.round(svM2[wm])) + ' visits.';
   }
 
-  // ── Clicks / CTR ─────────────────────────────────────────
+  // Clicks / CTR
   if (m.includes('click') && !m.includes('cost')) {
     return numFmt(Math.round(totalClick)) + ' total clicks with an average CTR of ' + ctr.toFixed(2) + '%.';
   }
@@ -1242,12 +1402,12 @@ function answer(message) {
       numFmt(Math.round(totalImps)) + ' impressions).';
   }
 
-  // ── Impressions / CPM ────────────────────────────────────
+  // Impressions / CPM
   if (m.includes('impression') || m.includes('reach') || m.includes('cpm')) {
     return numFmt(Math.round(totalImps)) + ' total impressions (avg CPM: $' + cpm.toFixed(2) + ').';
   }
 
-  // ── Account-specific query ───────────────────────────────
+  // Account-specific query
   for (var i = 0; i < accounts.length; i++) {
     var acc = accounts[i];
     var tokens = acc.toLowerCase().replace(/[^a-z0-9 ]/g,'').split(' ');
@@ -1266,12 +1426,12 @@ function answer(message) {
     }
   }
 
-  // ── Account list ─────────────────────────────────────────
+  // Account list
   if (m.includes('account') && (m.includes('list') || m.includes('all') || m.includes('what'))) {
     return 'Accounts in the current filter:\n' + accounts.join('\n');
   }
 
-  // ── Spend by account ─────────────────────────────────────
+  // Spend by account
   if ((m.includes('spend') || m.includes('cost')) && m.includes('account')) {
     var cba = groupSum(filteredData, 'Account Name', 'Cost');
     var lines = Object.keys(cba).sort(function(a,b){ return cba[b]-cba[a]; })
@@ -1279,8 +1439,9 @@ function answer(message) {
     return 'Spend by account:\n' + lines.join('\n');
   }
 
-  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR — or ask about benchmarks, active tests, seasonality, campaign types, or RMC assignments.";
 }
+
 
 /* ================================================================
    UTILITIES
