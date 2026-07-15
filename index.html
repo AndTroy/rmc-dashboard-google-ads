@@ -223,6 +223,35 @@
       border-color: var(--red);
     }
 
+    .campaign-filter-group { min-width: 280px; }
+
+    .campaign-search-input {
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--mid-gray);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      width: 100%;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .campaign-search-input:focus { border-color: var(--red); }
+
+    .campaign-multi {
+      min-width: 280px;
+      font-size: 12px;
+      border-radius: 0 0 8px 8px !important;
+    }
+
+    .campaign-hint {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
     .reset-btn {
       background: var(--gray);
       color: var(--black);
@@ -589,9 +618,9 @@
     <!-- FILTERS -->
     <div class="filters-bar">
       <div class="filter-group">
-        <div class="filter-label">Account</div>
+        <div class="filter-label">Region</div>
         <select class="filter-select" id="filterAccount">
-          <option value="all">All Accounts</option>
+          <option value="all">All Regions</option>
         </select>
       </div>
       <div class="filter-group">
@@ -602,7 +631,13 @@
         <div class="filter-label">Month To</div>
         <select class="filter-select" id="filterTo"></select>
       </div>
-      <button class="reset-btn" onclick="resetFilters()">Reset</button>
+      <div class="filter-group campaign-filter-group">
+        <div class="filter-label">Campaign</div>
+        <input type="text" class="campaign-search-input" id="campaignSearch" placeholder="Search campaigns…">
+        <select multiple class="filter-select campaign-multi" id="filterCampaign" size="6"></select>
+        <div class="campaign-hint">Hold Ctrl / ⌘ to select multiple &nbsp;·&nbsp; none selected = show all</div>
+      </div>
+      <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
 
     <!-- KPI CARDS -->
@@ -723,6 +758,30 @@ var filteredData = [];
 var charts       = {};
 var sortCol      = 'Month';
 var sortDir      = -1; // -1 = desc, 1 = asc
+var allCampaigns = []; // populated in initDashboard
+
+function buildCampaignOptions(filterText) {
+  var sel = document.getElementById('filterCampaign');
+  if (!sel) return;
+  var selected = getSelectedCampaigns();
+  sel.innerHTML = '';
+  var q = (filterText || '').toLowerCase();
+  allCampaigns.forEach(function(c) {
+    if (!q || c.toLowerCase().includes(q)) {
+      var opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      if (selected.indexOf(c) !== -1) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function getSelectedCampaigns() {
+  var sel = document.getElementById('filterCampaign');
+  if (!sel) return [];
+  return Array.from(sel.selectedOptions).map(function(o) { return o.value; });
+}
 
 /* ================================================================
    LIVE GOOGLE SHEETS FETCH
@@ -844,9 +903,9 @@ function initDashboard() {
   var months   = unique(rawData, 'Month').sort();
 
   var accSel = document.getElementById('filterAccount');
-  accSel.innerHTML = '<option value="all">All Accounts</option>';
+  accSel.innerHTML = '<option value="all">All Regions</option>';
   accounts.forEach(function(a) {
-    accSel.innerHTML += '<option value="' + esc(a) + '">' + a + '</option>';
+    accSel.innerHTML += '<option value="' + esc(a) + '">' + esc(shortName(a)) + '</option>';
   });
 
   var fromSel = document.getElementById('filterFrom');
@@ -860,12 +919,25 @@ function initDashboard() {
   });
   toSel.selectedIndex = toSel.options.length - 1;
 
-  ['filterAccount','filterFrom','filterTo'].forEach(function(id) {
+  // Build campaign list (cleaned names, sorted)
+  var campaignSet = {};
+  rawData.forEach(function(r) {
+    var c = cleanCampaignName(r['Campaign Name'] || '');
+    if (c) campaignSet[c] = true;
+  });
+  allCampaigns = Object.keys(campaignSet).sort();
+  buildCampaignOptions('');
+
+  ['filterAccount','filterFrom','filterTo','filterCampaign'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', applyFilters);
   });
 
+  document.getElementById('campaignSearch').addEventListener('input', function() {
+    buildCampaignOptions(this.value);
+  });
+
   document.getElementById('dataStatus').textContent =
-    rawData.length.toLocaleString() + ' rows · ' + months.length + ' months · ' + accounts.length + ' accounts';
+    rawData.length.toLocaleString() + ' rows · ' + months.length + ' months · ' + accounts.length + ' regions';
 
   applyFilters();
 }
@@ -874,14 +946,18 @@ function initDashboard() {
    FILTERS
 ================================================================ */
 function applyFilters() {
-  var acc  = document.getElementById('filterAccount').value;
-  var from = document.getElementById('filterFrom').value;
-  var to   = document.getElementById('filterTo').value;
+  var acc      = document.getElementById('filterAccount').value;
+  var from     = document.getElementById('filterFrom').value;
+  var to       = document.getElementById('filterTo').value;
+  var selCamps = getSelectedCampaigns();
 
   filteredData = rawData.filter(function(r) {
     var m = norm(r['Month']);
+    var cleanName = cleanCampaignName(r['Campaign Name'] || '');
+    var campMatch = selCamps.length === 0 || selCamps.indexOf(cleanName) !== -1;
     return (acc === 'all' || r['Account Name'] === acc) &&
-           m >= from && m <= to;
+           m >= from && m <= to &&
+           campMatch;
   });
 
   updateKPIs();
@@ -894,6 +970,9 @@ function resetFilters() {
   document.getElementById('filterFrom').selectedIndex = 0;
   var toSel = document.getElementById('filterTo');
   toSel.selectedIndex = toSel.options.length - 1;
+  // Clear campaign selection and search
+  document.getElementById('campaignSearch').value = '';
+  buildCampaignOptions('');
   applyFilters();
 }
 
