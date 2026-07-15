@@ -184,10 +184,16 @@
       border-radius: 12px;
       padding: 16px 24px;
       display: flex;
-      align-items: flex-end;
-      gap: 20px;
+      flex-direction: column;
+      gap: 14px;
       box-shadow: var(--shadow);
       margin-bottom: 24px;
+    }
+
+    .filters-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
       flex-wrap: wrap;
     }
 
@@ -617,27 +623,29 @@
 
     <!-- FILTERS -->
     <div class="filters-bar">
-      <div class="filter-group">
-        <div class="filter-label">Region</div>
-        <select class="filter-select" id="filterAccount">
-          <option value="all">All Regions</option>
-        </select>
+      <div class="filters-row">
+        <div class="filter-group">
+          <div class="filter-label">Region</div>
+          <select class="filter-select" id="filterAccount">
+            <option value="all">All Regions</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Month From</div>
+          <select class="filter-select" id="filterFrom"></select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Month To</div>
+          <select class="filter-select" id="filterTo"></select>
+        </div>
+        <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
       </div>
-      <div class="filter-group">
-        <div class="filter-label">Month From</div>
-        <select class="filter-select" id="filterFrom"></select>
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Month To</div>
-        <select class="filter-select" id="filterTo"></select>
-      </div>
-      <div class="filter-group campaign-filter-group">
+      <div class="filter-group campaign-filter-group" style="width:100%">
         <div class="filter-label">Campaign</div>
-        <input type="text" class="campaign-search-input" id="campaignSearch" placeholder="Search campaigns…">
-        <select multiple class="filter-select campaign-multi" id="filterCampaign" size="6"></select>
+        <input type="text" class="campaign-search-input" id="campaignSearch" placeholder="Search campaigns…" style="width:100%;box-sizing:border-box;">
+        <select multiple class="filter-select campaign-multi" id="filterCampaign" size="5" style="width:100%;box-sizing:border-box;"></select>
         <div class="campaign-hint">Hold Ctrl / ⌘ to select multiple &nbsp;·&nbsp; none selected = show all</div>
       </div>
-      <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
 
     <!-- KPI CARDS -->
@@ -1505,104 +1513,4 @@ function answer(message) {
       var aCpv    = aSV > 0 ? aCost / aSV : null;
       var aClicks = sumCol(aData, 'Clicks');
       return acc + ':\n' +
-        '• Spend: $' + fmt$(aCost) + '\n' +
-        '• Store visits: ' + numFmt(Math.round(aSV)) + '\n' +
-        '• Cost / visit: ' + (aCpv ? '$' + aCpv.toFixed(2) : 'N/A') + '\n' +
-        '• Clicks: ' + numFmt(Math.round(aClicks));
-    }
-  }
-
-  // Account list
-  if (m.includes('account') && (m.includes('list') || m.includes('all') || m.includes('what'))) {
-    return 'Accounts in the current filter:\n' + accounts.join('\n');
-  }
-
-  // Spend by account
-  if ((m.includes('spend') || m.includes('cost')) && m.includes('account')) {
-    var cba = groupSum(filteredData, 'Account Name', 'Cost');
-    var lines = Object.keys(cba).sort(function(a,b){ return cba[b]-cba[a]; })
-      .map(function(a){ return shortName(a) + ': $' + fmt$(cba[a]); });
-    return 'Spend by account:\n' + lines.join('\n');
-  }
-
-  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR — or ask about benchmarks, active tests, seasonality, campaign types, or RMC assignments.";
-}
-
-
-/* ================================================================
-   UTILITIES
-================================================================ */
-function sumCol(data, col) {
-  return data.reduce(function(s,r){ return s + (parseFloat(r[col])||0); }, 0);
-}
-
-function groupSum(data, groupCol, valueCol) {
-  var out = {};
-  data.forEach(function(r) {
-    var k = r[groupCol] || 'Unknown';
-    out[k] = (out[k]||0) + (parseFloat(r[valueCol])||0);
-  });
-  return out;
-}
-
-function unique(data, col) {
-  return [...new Set(data.map(function(r){ return r[col]; }).filter(Boolean))];
-}
-
-function norm(m) {
-  if (!m) return '';
-  return String(m).trim().substring(0, 7); // "YYYY-MM"
-}
-
-function monthLabel(m) {
-  if (!m) return '';
-  var s = String(m).trim().substring(0, 7);
-  var p = s.split('-');
-  if (p.length < 2) return s;
-  var names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var idx   = parseInt(p[1], 10) - 1;
-  return (names[idx] || p[1]) + ' ' + p[0];
-}
-
-function cleanCampaignName(name) {
-  // Strip trailing " | snake_case_identifier" segments (contain underscores — tracking suffixes)
-  // Keeps readable pipe-separated sections like "V4 | Brand Fund | West | AK401 | Performance Max"
-  return name.replace(/\s*\|\s*[a-z0-9]+(?:_[a-z0-9]+)+\s*$/i, '').trim();
-}
-
-function shortName(name) {
-  if (!name) return '';
-  return name
-    .replace(' Local Brand Fund Account', '')
-    .replace(' Region', '')
-    .replace("Tommy's Express ", 'TE ')
-    .trim();
-}
-
-function fmt$(n) {
-  return (parseFloat(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-}
-
-function numFmt(n) {
-  return (n||0).toLocaleString('en-US');
-}
-
-function round2(n) {
-  return Math.round(n * 100) / 100;
-}
-
-function set(id, val) {
-  var el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-function esc(s) {
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-</script>
-</body>
-</html>
+        '• Spend: 
