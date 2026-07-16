@@ -786,14 +786,20 @@ function buildCampaignOptions(filterText) {
   var selected = getSelectedCampaigns();
   sel.innerHTML = '';
   var q = (filterText || '').toLowerCase();
+  var rmcEl = document.getElementById('filterRMC');
+  var rmc = rmcEl ? rmcEl.value : 'all';
+  var rmcSites = rmc !== 'all' ? RMC_SITES[rmc] : null;
   allCampaigns.forEach(function(c) {
-    if (!q || c.toLowerCase().includes(q)) {
-      var opt = document.createElement('option');
-      opt.value = c;
-      opt.textContent = c;
-      if (selected.indexOf(c) !== -1) opt.selected = true;
-      sel.appendChild(opt);
+    if (q && !c.toLowerCase().includes(q)) return;
+    if (rmcSites) {
+      var sid = getSiteId(c);
+      if (!sid || rmcSites.indexOf(sid) === -1) return;
     }
+    var opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    if (selected.indexOf(c) !== -1) opt.selected = true;
+    sel.appendChild(opt);
   });
 }
 
@@ -948,8 +954,15 @@ function initDashboard() {
   allCampaigns = Object.keys(campaignSet).sort();
   buildCampaignOptions('');
 
-  ['filterAccount','filterRMC','filterFrom','filterTo','filterCampaign'].forEach(function(id) {
+  ['filterAccount','filterFrom','filterTo','filterCampaign'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', applyFilters);
+  });
+
+  // RMC change: clear campaign search/selection, rebuild scoped list, then filter
+  document.getElementById('filterRMC').addEventListener('change', function() {
+    document.getElementById('campaignSearch').value = '';
+    buildCampaignOptions('');
+    applyFilters();
   });
 
   document.getElementById('campaignSearch').addEventListener('input', function() {
@@ -1633,24 +1646,4 @@ function getSiteId(campaignName) {
   // Extracts the site ID from a pipe-delimited campaign name.
   // Standard format: V4 | Brand Fund | Region | SiteID | ...
   // Site IDs match pattern: 2-3 uppercase letters + 2-4 digits (e.g. MI147, TX399, FL08)
-  if (!campaignName) return '';
-  var parts = campaignName.split('|');
-  for (var i = 0; i < parts.length; i++) {
-    var seg = parts[i].trim();
-    if (/^[A-Z]{2,3}\d{2,4}$/.test(seg)) return seg;
-  }
-  return '';
-}
-
-function cleanCampaignName(name) {
-  if (!name) return '';
-  // Strip trailing snake_case tracking segments (e.g. _pmax_sv_bid2024q1)
-  return name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
-}
-
-function round2(n) {
-  return Math.round((n || 0) * 100) / 100;
-}
-</script>
-</body>
-</html>
+  i
