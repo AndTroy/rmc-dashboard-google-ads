@@ -1606,6 +1606,10 @@ function cleanCampaignName(name) {
   // Strip trailing snake_case tracking segments (e.g. _pmax_sv_bid2024q1)
   return name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
 }
+
+function round2(n) {
+  return Math.round((n || 0) * 100) / 100;
+}
 </script>
 </body>
 </html>
