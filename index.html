@@ -184,16 +184,10 @@
       border-radius: 12px;
       padding: 16px 24px;
       display: flex;
-      flex-direction: column;
-      gap: 14px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-    }
-
-    .filters-row {
-      display: flex;
       align-items: flex-end;
       gap: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
       flex-wrap: wrap;
     }
 
@@ -623,29 +617,27 @@
 
     <!-- FILTERS -->
     <div class="filters-bar">
-      <div class="filters-row">
-        <div class="filter-group">
-          <div class="filter-label">Region</div>
-          <select class="filter-select" id="filterAccount">
-            <option value="all">All Regions</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <div class="filter-label">Month From</div>
-          <select class="filter-select" id="filterFrom"></select>
-        </div>
-        <div class="filter-group">
-          <div class="filter-label">Month To</div>
-          <select class="filter-select" id="filterTo"></select>
-        </div>
-        <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
+      <div class="filter-group">
+        <div class="filter-label">Region</div>
+        <select class="filter-select" id="filterAccount">
+          <option value="all">All Regions</option>
+        </select>
       </div>
-      <div class="filter-group campaign-filter-group" style="width:100%">
+      <div class="filter-group">
+        <div class="filter-label">Month From</div>
+        <select class="filter-select" id="filterFrom"></select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Month To</div>
+        <select class="filter-select" id="filterTo"></select>
+      </div>
+      <div class="filter-group campaign-filter-group">
         <div class="filter-label">Campaign</div>
-        <input type="text" class="campaign-search-input" id="campaignSearch" placeholder="Search campaigns…" style="width:100%;box-sizing:border-box;">
-        <select multiple class="filter-select campaign-multi" id="filterCampaign" size="5" style="width:100%;box-sizing:border-box;"></select>
+        <input type="text" class="campaign-search-input" id="campaignSearch" placeholder="Search campaigns…">
+        <select multiple class="filter-select campaign-multi" id="filterCampaign" size="6"></select>
         <div class="campaign-hint">Hold Ctrl / ⌘ to select multiple &nbsp;·&nbsp; none selected = show all</div>
       </div>
+      <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
 
     <!-- KPI CARDS -->
