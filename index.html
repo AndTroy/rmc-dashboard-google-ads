@@ -1646,4 +1646,22 @@ function getSiteId(campaignName) {
   // Extracts the site ID from a pipe-delimited campaign name.
   // Standard format: V4 | Brand Fund | Region | SiteID | ...
   // Site IDs match pattern: 2-3 uppercase letters + 2-4 digits (e.g. MI147, TX399, FL08)
-  i
+  if (!campaignName) return '';
+  var parts = campaignName.split('|');
+  for (var i = 0; i < parts.length; i++) {
+    var seg = parts[i].trim();
+    if (/^[A-Z]{2,3}\d{2,4}$/.test(seg)) return seg;
+  }
+  return '';
+}
+function cleanCampaignName(name) {
+  if (!name) return '';
+  // Remove trailing snake_case tracking segments (e.g. _pmax_sv_bid2024q1)
+  return name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
+}
+function round2(n) {
+  return Math.round((n || 0) * 100) / 100;
+}
+</script>
+</body>
+</html>
