@@ -789,11 +789,19 @@ function buildCampaignOptions(filterText) {
   var rmcEl = document.getElementById('filterRMC');
   var rmc = rmcEl ? rmcEl.value : 'all';
   var rmcSites = rmc !== 'all' ? RMC_SITES[rmc] : null;
+  var accEl = document.getElementById('filterAccount');
+  var acc = accEl ? accEl.value : 'all';
+  var regionSeg = acc !== 'all' ? shortName(acc) : null;
   allCampaigns.forEach(function(c) {
     if (q && !c.toLowerCase().includes(q)) return;
     if (rmcSites) {
       var sid = getSiteId(c);
       if (!sid || rmcSites.indexOf(sid) === -1) return;
+    }
+    if (regionSeg) {
+      var parts = c.split('|');
+      var hasRegion = parts.some(function(p) { return p.trim() === regionSeg; });
+      if (!hasRegion) return;
     }
     var opt = document.createElement('option');
     opt.value = c;
@@ -954,11 +962,18 @@ function initDashboard() {
   allCampaigns = Object.keys(campaignSet).sort();
   buildCampaignOptions('');
 
-  ['filterAccount','filterFrom','filterTo','filterCampaign'].forEach(function(id) {
+  ['filterFrom','filterTo','filterCampaign'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', applyFilters);
   });
 
-  // RMC change: clear campaign search/selection, rebuild scoped list, then filter
+  // Region change: rebuild campaign list scoped to region+RMC, then filter
+  document.getElementById('filterAccount').addEventListener('change', function() {
+    document.getElementById('campaignSearch').value = '';
+    buildCampaignOptions('');
+    applyFilters();
+  });
+
+  // RMC change: rebuild campaign list scoped to RMC+region, then filter
   document.getElementById('filterRMC').addEventListener('change', function() {
     document.getElementById('campaignSearch').value = '';
     buildCampaignOptions('');
