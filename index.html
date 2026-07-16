@@ -1505,4 +1505,107 @@ function answer(message) {
       var aCpv    = aSV > 0 ? aCost / aSV : null;
       var aClicks = sumCol(aData, 'Clicks');
       return acc + ':\n' +
-        '• Spend: 
+        '• Spend: $' + fmt$(aCost) + '\n' +
+        '• Store Visits: ' + numFmt(Math.round(aSV)) + '\n' +
+        (aCpv !== null ? '• Cost/Visit: $' + aCpv.toFixed(2) + '\n' : '') +
+        '• Clicks: ' + numFmt(Math.round(aClicks));
+    }
+  }
+
+  // Account list
+  if (m.includes('account list') || m.includes('all accounts') ||
+      m.includes('which accounts') || m.includes('list account')) {
+    return 'Active regions in this view:\n' +
+      accounts.map(function(a) { return '• ' + shortName(a); }).join('\n');
+  }
+
+  // Spend by account
+  if (m.includes('spend by account') || m.includes('account spend') ||
+      m.includes('breakdown') ||
+      (m.includes('which') && m.includes('spend') && m.includes('most'))) {
+    var spendByAcc2 = groupSum(filteredData, 'Account Name', 'Cost');
+    var spendSorted = Object.keys(spendByAcc2)
+      .sort(function(a, b) { return spendByAcc2[b] - spendByAcc2[a]; });
+    if (!spendSorted.length) return 'No spend data in the current view.';
+    return 'Spend by region:\n' + spendSorted.map(function(a) {
+      return '• ' + shortName(a) + ': $' + fmt$(spendByAcc2[a]);
+    }).join('\n');
+  }
+
+  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+}
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+function set(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function sumCol(data, col) {
+  return data.reduce(function(s, r) { return s + (parseFloat(r[col]) || 0); }, 0);
+}
+
+function groupSum(data, groupCol, valueCol) {
+  var out = {};
+  data.forEach(function(r) {
+    var k = r[groupCol];
+    if (k === undefined || k === null || k === '') return;
+    out[k] = (out[k] || 0) + (parseFloat(r[valueCol]) || 0);
+  });
+  return out;
+}
+
+function unique(data, col) {
+  var seen = {};
+  data.forEach(function(r) { if (r[col]) seen[r[col]] = true; });
+  return Object.keys(seen);
+}
+
+function norm(str) {
+  return (str || '').trim().slice(0, 7);
+}
+
+function numFmt(n) {
+  return Number(n || 0).toLocaleString();
+}
+
+function fmt$(n) {
+  return Number(n || 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function monthLabel(m) {
+  if (!m) return '';
+  var parts = String(m).split('-');
+  if (parts.length < 2) return m;
+  var names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var mo = parseInt(parts[1], 10) - 1;
+  return (names[mo] || parts[1]) + ' ' + parts[0];
+}
+
+function shortName(name) {
+  if (!name) return '';
+  var match = name.match(/^([\w]+(?:\s+[\w]+)?)\s+Region/i);
+  return match ? match[1].trim() : name.split(' ')[0];
+}
+
+function cleanCampaignName(name) {
+  if (!name) return '';
+  // Strip trailing snake_case tracking segments (e.g. _pmax_sv_bid2024q1)
+  return name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
+}
+</script>
+</body>
+</html>
