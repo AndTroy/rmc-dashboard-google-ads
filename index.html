@@ -571,6 +571,67 @@
       header { padding: 0 16px; }
       .container { padding: 16px 12px 48px; }
     }
+
+    /* ── SUMMARY CARD ────────────────────────────────── */
+    .summary-card {
+      background: var(--white);
+      border: 1px solid var(--mid-gray);
+      border-left: 4px solid var(--red);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .summary-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--red);
+      margin-bottom: 3px;
+    }
+    .summary-context {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--black);
+    }
+    .summary-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-gray);
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .summary-dismiss:hover { color: var(--black); }
+    .summary-body {
+      font-size: 14px;
+      color: var(--black);
+      line-height: 1.75;
+    }
+    .summary-body p { margin: 0 0 8px; }
+    .summary-body p:last-child { margin-bottom: 0; }
+    .summary-btn {
+      background: var(--dark-red);
+      border: none;
+      color: var(--white);
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      align-self: flex-end;
+      transition: background 0.2s;
+    }
+    .summary-btn:hover { background: var(--red); }
+
   </style>
 </head>
 <body>
@@ -648,6 +709,7 @@
         <select multiple class="filter-select campaign-multi" id="filterCampaign" size="6"></select>
         <div class="campaign-hint">Hold Ctrl / ⌘ to select multiple &nbsp;·&nbsp; none selected = show all</div>
       </div>
+      <button class="summary-btn" onclick="generateSummary()">✦ Summary</button>
       <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
 
@@ -678,6 +740,19 @@
         <div class="kpi-value" id="kpiClicks">—</div>
         <div class="kpi-sub" id="kpiCTR">Avg CTR: —</div>
       </div>
+    </div>
+
+
+    <!-- SUMMARY CARD -->
+    <div class="summary-card" id="summaryCard" style="display:none">
+      <div class="summary-header">
+        <div>
+          <div class="summary-label">✦ Performance Summary</div>
+          <div class="summary-context" id="summaryContext"></div>
+        </div>
+        <button class="summary-dismiss" onclick="document.getElementById('summaryCard').style.display='none'" title="Dismiss">&times;</button>
+      </div>
+      <div class="summary-body" id="summaryBody"></div>
     </div>
 
     <!-- CHARTS — Store Visits by Month + Cost per Store Visit by Month -->
@@ -1589,6 +1664,160 @@ function answer(message) {
   }
 
   return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+}
+
+/* ================================================================
+   SUMMARY GENERATOR
+================================================================ */
+function generateSummary() {
+  if (!filteredData.length) { alert('No data loaded yet.'); return; }
+
+  var rmc      = document.getElementById('filterRMC').value;
+  var acc      = document.getElementById('filterAccount').value;
+  var from     = document.getElementById('filterFrom').value;
+  var to       = document.getElementById('filterTo').value;
+  var selCamps = getSelectedCampaigns();
+
+  // Context label
+  var ctx = [];
+  if (rmc !== 'all') ctx.push(rmc);
+  if (acc !== 'all') ctx.push(shortName(acc) + ' Region');
+  if (selCamps.length === 1) ctx.push(cleanCampaignName(selCamps[0]));
+  else if (selCamps.length > 1) ctx.push(selCamps.length + ' campaigns selected');
+  if (!ctx.length) ctx.push('All Data');
+  var fl = monthLabel(from), tl = monthLabel(to);
+  ctx.push(fl === tl ? fl : fl + '–' + tl);
+  document.getElementById('summaryContext').textContent = ctx.join(' · ');
+
+  // Current period metrics
+  var curCost = sumCol(filteredData, 'Cost');
+  var curSV   = sumCol(filteredData, 'Store Visits');
+  var curCPV  = curSV > 0 ? curCost / curSV : 0;
+  var curMo   = unique(filteredData, 'Month');
+  var numMo   = curMo.length;
+
+  // Unique sites & campaigns
+  var siteSet = {}, campSet = {};
+  filteredData.forEach(function(r) {
+    var sid = getSiteId(r['Campaign Name'] || '');
+    if (sid) siteSet[sid] = true;
+    var c = cleanCampaignName(r['Campaign Name'] || '');
+    if (c) campSet[c] = true;
+  });
+  var siteCount = Object.keys(siteSet).length;
+  var campCount = Object.keys(campSet).length;
+
+  // Prior period (same # of months immediately before 'from')
+  var allMo    = unique(rawData, 'Month').sort();
+  var fromIdx  = allMo.indexOf(from);
+  var priorMo  = fromIdx >= numMo ? allMo.slice(fromIdx - numMo, fromIdx) : [];
+  var rmcSites = rmc !== 'all' ? RMC_SITES[rmc] : null;
+  var priorData = priorMo.length ? rawData.filter(function(r) {
+    if (priorMo.indexOf(norm(r['Month'])) === -1) return false;
+    if (acc !== 'all' && r['Account Name'] !== acc) return false;
+    if (rmcSites) { var sid = getSiteId(r['Campaign Name']||''); if (!sid || rmcSites.indexOf(sid)===-1) return false; }
+    if (selCamps.length) { if (selCamps.indexOf(cleanCampaignName(r['Campaign Name']||''))===-1) return false; }
+    return true;
+  }) : [];
+  var priorCost = sumCol(priorData, 'Cost');
+  var priorSV   = sumCol(priorData, 'Store Visits');
+  var priorCPV  = priorSV > 0 ? priorCost / priorSV : 0;
+
+  // Per-site CPV
+  var sCost = {}, sSV = {};
+  filteredData.forEach(function(r) {
+    var sid = getSiteId(r['Campaign Name'] || '');
+    if (!sid) return;
+    sCost[sid] = (sCost[sid] || 0) + (parseFloat(r['Cost']) || 0);
+    sSV[sid]   = (sSV[sid]   || 0) + (parseFloat(r['Store Visits']) || 0);
+  });
+  var sites = Object.keys(sCost).filter(function(s) { return sSV[s] > 0; });
+  sites.sort(function(a, b) { return sCost[a]/sSV[a] - sCost[b]/sSV[b]; });
+
+  // Campaign type split
+  var pmC=0,pmSV=0,srC=0,srSV=0;
+  filteredData.forEach(function(r) {
+    var n = (r['Campaign Name']||'').toLowerCase();
+    var c = parseFloat(r['Cost'])||0, v = parseFloat(r['Store Visits'])||0;
+    if (n.includes('performance max') || n.includes('pmax')) { pmC+=c; pmSV+=v; }
+    else { srC+=c; srSV+=v; }
+  });
+
+  // Network average
+  var netCost = sumCol(rawData,'Cost'), netSV = sumCol(rawData,'Store Visits');
+  var netCPV  = netSV > 0 ? netCost/netSV : 0;
+
+  // Build paragraphs
+  var p = [];
+
+  // Opening sentence
+  var open = '';
+  if (campCount === 1) {
+    open = 'The selected campaign generated <strong>' + numFmt(Math.round(curSV)) + '</strong> store visits';
+  } else {
+    open = (siteCount > 1
+      ? '<strong>' + campCount + '</strong> campaigns across <strong>' + siteCount + ' sites</strong>'
+      : '<strong>' + campCount + '</strong> campaign' + (campCount!==1?'s':'')) +
+      ' generated <strong>' + numFmt(Math.round(curSV)) + '</strong> store visits';
+  }
+  open += ' over ' + numMo + ' month' + (numMo!==1?'s':'') +
+    ' at <strong>$' + curCPV.toFixed(2) + '/visit</strong>' +
+    ' on <strong>$' + fmt$(curCost) + '</strong> total spend.';
+  p.push(open);
+
+  // Prior period comparison
+  if (priorSV > 0) {
+    var cpvChg = (curCPV - priorCPV) / priorCPV * 100;
+    var svChg  = (curSV  - priorSV)  / priorSV  * 100;
+    var clr    = cpvChg < 0 ? '#16a34a' : '#dc2626';
+    var pr0    = monthLabel(priorMo[0]);
+    var prN    = monthLabel(priorMo[priorMo.length-1]);
+    var prRange = pr0 === prN ? pr0 : pr0 + '–' + prN;
+    p.push('Compared to the prior period (' + prRange + '): ' +
+      'cost/visit <span style="color:' + clr + ';font-weight:600">' +
+      (cpvChg<0?'▼':'▲') + Math.abs(cpvChg).toFixed(1) + '%</span>' +
+      ' (from $' + priorCPV.toFixed(2) + '), ' +
+      'visits ' + (svChg>=0?'+':'') + svChg.toFixed(1) + '%.');
+  } else if (priorMo.length === 0) {
+    p.push('No prior period available for comparison — this is the earliest data in the selected view.');
+  }
+
+  // Network comparison (only when filtered)
+  if (netCPV > 0 && filteredData.length < rawData.length) {
+    var diff = curCPV - netCPV;
+    var nclr = diff < 0 ? '#16a34a' : '#dc2626';
+    p.push('vs. overall network avg <strong>$' + netCPV.toFixed(2) + '/visit</strong>: ' +
+      '<span style="color:' + nclr + ';font-weight:600">' +
+      (diff < 0
+        ? '$' + Math.abs(diff).toFixed(2) + ' below network avg ✓'
+        : '$' + diff.toFixed(2) + ' above network avg') +
+      '</span>.');
+  }
+
+  // Top & bottom sites (only when multiple sites)
+  if (sites.length > 1) {
+    var topN = sites.slice(0, Math.min(3, sites.length));
+    p.push('<strong>Most efficient sites:</strong> ' + topN.map(function(s) {
+      return s + ' (<strong>$' + (sCost[s]/sSV[s]).toFixed(2) + '</strong>)';
+    }).join(', ') + '.');
+    if (sites.length > 5) {
+      var botN = sites.slice(-3).reverse();
+      p.push('<strong>Highest cost/visit:</strong> ' + botN.map(function(s) {
+        return s + ' (<strong>$' + (sCost[s]/sSV[s]).toFixed(2) + '</strong>)';
+      }).join(', ') + '.');
+    }
+  }
+
+  // Campaign type breakdown
+  if (pmSV > 0 && srSV > 0) {
+    p.push('<strong>By type:</strong> Performance Max avg <strong>$' + (pmC/pmSV).toFixed(2) + '/visit</strong>; ' +
+      'Search/Brand avg <strong>$' + (srC/srSV).toFixed(2) + '/visit</strong>.');
+  }
+
+  document.getElementById('summaryBody').innerHTML = p.map(function(l) { return '<p>' + l + '</p>'; }).join('');
+  var card = document.getElementById('summaryCard');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 /* ================================================================
