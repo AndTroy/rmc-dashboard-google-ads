@@ -1663,7 +1663,196 @@ function answer(message) {
     }).join('\n');
   }
 
-  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+
+  // ── Q1: SPEND TIMING — when to add or reduce based on seasonality ───────
+  if ((m.includes('when') && (m.includes('add') || m.includes('increase') || m.includes('reduce') || m.includes('cut') || m.includes('pull back')) && (m.includes('spend') || m.includes('budget') || m.includes('invest'))) ||
+      (m.includes('best time') && (m.includes('spend') || m.includes('invest'))) ||
+      (m.includes('spend timing')) ||
+      (m.includes('when should we') && (m.includes('spend') || m.includes('invest')))) {
+    // Build calendar-month CPV from all rawData in the current filter context
+    var rmcCtxEl = document.getElementById('filterRMC');
+    var accCtxEl = document.getElementById('filterAccount');
+    var ctxRMC   = rmcCtxEl ? rmcCtxEl.value : 'all';
+    var ctxAcc   = accCtxEl ? accCtxEl.value : 'all';
+    var ctxSites = ctxRMC !== 'all' ? RMC_SITES[ctxRMC] : null;
+    var ctxData  = rawData.filter(function(r) {
+      if (ctxAcc !== 'all' && r['Account Name'] !== ctxAcc) return false;
+      if (ctxSites) { var sid = getSiteId(r['Campaign Name']||''); if (!sid||ctxSites.indexOf(sid)===-1) return false; }
+      return true;
+    });
+    var q1MoCost = {}, q1MoSV = {};
+    ctxData.forEach(function(r) {
+      var cm = parseInt((r['Month']||'').split('-')[1], 10);
+      if (!cm) return;
+      q1MoCost[cm] = (q1MoCost[cm]||0) + (parseFloat(r['Cost'])||0);
+      q1MoSV[cm]   = (q1MoSV[cm]  ||0) + (parseFloat(r['Store Visits'])||0);
+    });
+    var q1Names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var q1Mos = [];
+    for (var q1i = 1; q1i <= 12; q1i++) {
+      if (q1MoCost[q1i] && q1MoSV[q1i] > 0) {
+        q1Mos.push({ mo: q1i, name: q1Names[q1i-1], cpv: q1MoCost[q1i]/q1MoSV[q1i] });
+      }
+    }
+    if (!q1Mos.length) return 'Not enough historical data to identify seasonal patterns. Load more months of data for a reliable analysis.';
+    q1Mos.sort(function(a,b){ return a.cpv - b.cpv; });
+    var q1Best  = q1Mos.slice(0, Math.min(3, q1Mos.length));
+    var q1Worst = q1Mos.slice(-Math.min(3, q1Mos.length)).reverse();
+    var q1Ctx   = ctxRMC !== 'all' ? ctxRMC : (ctxAcc !== 'all' ? shortName(ctxAcc)+' Region' : 'full network');
+    return 'Seasonal spend timing — ' + q1Ctx + ' (historical avg CPV by month):\n\n' +
+      'Add spend — most efficient months:\n' +
+      q1Best.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
+      '\n\nConsider reducing or holding spend — least efficient months:\n' +
+      q1Worst.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
+      '\n\nRule of thumb: the car wash industry typically sees the lowest CPV in summer (June–Aug) when visit intent is highest, and the highest CPV in late winter (Jan–Mar). ' +
+      (ctxRMC !== 'all' || ctxAcc !== 'all' ? 'The figures above reflect ' + q1Ctx + ' specifically.' : 'Filter by RMC or Region before asking to see territory-specific patterns.');
+  }
+
+  // ── Q2: FORWARD CPV OUTLOOK — will CPV come down with consistent spend ───
+  if (m.includes('foresee') || m.includes('forecast') ||
+      (m.includes('come down') && (m.includes('cost') || m.includes('cpv') || m.includes('visit'))) ||
+      (m.includes('will') && (m.includes('improve') || m.includes('come down') || m.includes('get better')) && (m.includes('cost') || m.includes('cpv') || m.includes('efficiency'))) ||
+      m.includes('consistent spend') || m.includes('keeping spend') || m.includes('sustained spend') ||
+      (m.includes('next') && (m.includes('three month') || m.includes('3 month')) && (m.includes('cost') || m.includes('cpv') || m.includes('spend'))) ||
+      (m.includes('going forward') && (m.includes('cost') || m.includes('cpv')))) {
+    if (!filteredData.length) return 'No data loaded. Load campaign data first for a forward-looking outlook.';
+    // Filter context
+    var q2RMCEl  = document.getElementById('filterRMC');
+    var q2AccEl  = document.getElementById('filterAccount');
+    var q2RMC    = q2RMCEl ? q2RMCEl.value : 'all';
+    var q2Acc    = q2AccEl ? q2AccEl.value : 'all';
+    var q2Sites  = q2RMC !== 'all' ? RMC_SITES[q2RMC] : null;
+    var q2CtxData = rawData.filter(function(r) {
+      if (q2Acc !== 'all' && r['Account Name'] !== q2Acc) return false;
+      if (q2Sites) { var sid = getSiteId(r['Campaign Name']||''); if (!sid||q2Sites.indexOf(sid)===-1) return false; }
+      return true;
+    });
+    // Historical calendar-month CPV for context
+    var q2MoCost = {}, q2MoSV = {};
+    q2CtxData.forEach(function(r) {
+      var cm = parseInt((r['Month']||'').split('-')[1], 10);
+      if (!cm) return;
+      q2MoCost[cm] = (q2MoCost[cm]||0) + (parseFloat(r['Cost'])||0);
+      q2MoSV[cm]   = (q2MoSV[cm]  ||0) + (parseFloat(r['Store Visits'])||0);
+    });
+    // Current trend from filteredData
+    var q2AllMo = unique(rawData,'Month').sort();
+    var q2LatestMo = q2AllMo[q2AllMo.length-1];
+    var q2LatestCal = parseInt(q2LatestMo.split('-')[1], 10);
+    var q2LatestYr  = parseInt(q2LatestMo.split('-')[0], 10);
+    var q2RecentMos = q2AllMo.slice(-3);
+    var q2Recent = q2RecentMos.map(function(mo) {
+      var d = filteredData.filter(function(r){ return norm(r['Month'])===mo; });
+      var c = sumCol(d,'Cost'), v = sumCol(d,'Store Visits');
+      return { label: monthLabel(mo), cpv: v>0?c/v:null };
+    }).filter(function(d){ return d.cpv!==null; });
+    var q2Trend = 'stable';
+    if (q2Recent.length >= 2) {
+      var q2Pct = (q2Recent[q2Recent.length-1].cpv - q2Recent[0].cpv) / q2Recent[0].cpv * 100;
+      if (q2Pct < -5) q2Trend = 'improving (↓)';
+      else if (q2Pct > 5) q2Trend = 'rising (↑)';
+    }
+    var q2NowCPV = q2Recent.length ? q2Recent[q2Recent.length-1].cpv : (sumCol(filteredData,'Store Visits')>0 ? sumCol(filteredData,'Cost')/sumCol(filteredData,'Store Visits') : null);
+    // Next 3 months
+    var q2Names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var q2NextLines = [];
+    var q2NextCPVs = [];
+    for (var q2i = 1; q2i <= 3; q2i++) {
+      var q2nm = ((q2LatestCal-1+q2i)%12)+1;
+      var q2ny = q2LatestYr + Math.floor((q2LatestCal-1+q2i)/12);
+      if (q2MoSV[q2nm] > 0) {
+        var q2hist = q2MoCost[q2nm]/q2MoSV[q2nm];
+        q2NextCPVs.push(q2hist);
+        var q2vs = q2NowCPV ? (q2hist < q2NowCPV*0.95 ? ' — historically better than current' : q2hist > q2NowCPV*1.05 ? ' — historically harder than current' : ' — similar to current') : '';
+        q2NextLines.push('• ' + q2Names[q2nm-1] + ' ' + q2ny + ': $' + q2hist.toFixed(2) + '/visit historically' + q2vs);
+      } else {
+        q2NextLines.push('• ' + q2Names[q2nm-1] + ' ' + q2ny + ': no prior data for this month');
+      }
+    }
+    var q2AvgNext = q2NextCPVs.length ? q2NextCPVs.reduce(function(s,v){return s+v;},0)/q2NextCPVs.length : null;
+    var q2Verdict = '';
+    if (q2AvgNext !== null && q2NowCPV) {
+      if (q2AvgNext < q2NowCPV*0.95) q2Verdict = 'Seasonal patterns favor improvement — historically the next 3 months average lower CPV than current. Consistent spend through this window should produce efficiency gains as conversion rates typically rise.';
+      else if (q2AvgNext > q2NowCPV*1.05) q2Verdict = 'Seasonal patterns suggest CPV may remain elevated or increase over the next 3 months. Maintaining consistent spend is reasonable for sustaining market presence and algorithm stability, but meaningful efficiency improvement from seasonality alone is unlikely in this window. Expect CPV relief in the months that follow.';
+      else q2Verdict = 'Seasonally, the next 3 months look similar to the current period. With consistent spend, the algorithm will continue accumulating conversion data which typically translates to gradual efficiency gains — but the improvement will be incremental rather than a sudden drop.';
+    }
+    var q2Ctx = q2RMC !== 'all' ? q2RMC : (q2Acc !== 'all' ? shortName(q2Acc)+' Region' : 'current view');
+    return 'CPV outlook — ' + q2Ctx + ':\n\n' +
+      'Current trend: ' + q2Trend + (q2NowCPV ? ' (latest: $' + q2NowCPV.toFixed(2) + '/visit)' : '') + '\n\n' +
+      'Next 3 months — historical seasonal avg:\n' + q2NextLines.join('\n') +
+      (q2Verdict ? '\n\n' + q2Verdict : '') +
+      '\n\nNote: Projections are pattern-based. Actual CPV depends on competition, weather, campaign settings, and bid strategy.';
+  }
+
+  // ── Q3: SITE-SPECIFIC EFFICIENCY — detect site ID in message ────────────
+  var q3Match = m.toUpperCase().match(/\b([A-Z]{2,3}\d{2,4})\b/);
+  if (q3Match) {
+    var qSite = q3Match[1];
+    var siteRows = rawData.filter(function(r){ return getSiteId(r['Campaign Name']||'')===qSite; });
+    if (!siteRows.length) return 'No campaign data found for site ' + qSite + ' in the loaded dataset. Verify the site ID and that data covers the relevant period.';
+    // Monthly breakdown
+    var sMoData = {};
+    siteRows.forEach(function(r) {
+      var mo = norm(r['Month']); if(!mo) return;
+      if(!sMoData[mo]) sMoData[mo]={cost:0,sv:0};
+      sMoData[mo].cost += parseFloat(r['Cost'])||0;
+      sMoData[mo].sv   += parseFloat(r['Store Visits'])||0;
+    });
+    var sMoList = Object.keys(sMoData).sort();
+    var sMoCPVs = sMoList.map(function(mo){
+      var d=sMoData[mo]; return {mo:mo,label:monthLabel(mo),cpv:d.sv>0?d.cost/d.sv:null,sv:d.sv,cost:d.cost};
+    }).filter(function(d){return d.cpv!==null;});
+    if (!sMoCPVs.length) return 'Site '+qSite+' has no store visit conversions recorded in the dataset.';
+    var sLatest = sMoCPVs[sMoCPVs.length-1].cpv;
+    var sFirst  = sMoCPVs[0].cpv;
+    var sPct    = sMoCPVs.length>=2 ? (sLatest-sFirst)/sFirst*100 : 0;
+    var sTrend  = sMoCPVs.length<2 ? 'only 1 month of data' : Math.abs(sPct)<10 ? 'stable ('+sPct.toFixed(0)+'% change since '+sMoCPVs[0].label+')' : sPct<0 ? 'improving (↓'+Math.abs(sPct).toFixed(0)+'% since '+sMoCPVs[0].label+')' : 'worsening (↑'+sPct.toFixed(0)+'% since '+sMoCPVs[0].label+')';
+    // vs network avg
+    var sNetCost=sumCol(rawData,'Cost'), sNetSV=sumCol(rawData,'Store Visits');
+    var sNetCPV = sNetSV>0?sNetCost/sNetSV:0;
+    var sDiff = sNetCPV>0 ? sLatest-sNetCPV : null;
+    // Best month on record
+    var sBestMo = sMoCPVs.slice().sort(function(a,b){return a.cpv-b.cpv;})[0];
+    // Seasonal next 3 months (network-level)
+    var sAllMo = unique(rawData,'Month').sort();
+    var sLatestMo = sAllMo[sAllMo.length-1];
+    var sLatCal = parseInt(sLatestMo.split('-')[1],10);
+    var sLatYr  = parseInt(sLatestMo.split('-')[0],10);
+    var sNetMoCost={},sNetMoSV={};
+    rawData.forEach(function(r){
+      var cm=parseInt((r['Month']||'').split('-')[1],10); if(!cm)return;
+      sNetMoCost[cm]=(sNetMoCost[cm]||0)+(parseFloat(r['Cost'])||0);
+      sNetMoSV[cm]  =(sNetMoSV[cm]  ||0)+(parseFloat(r['Store Visits'])||0);
+    });
+    var sSeasonLines=[], sNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    for(var si=1;si<=3;si++){
+      var snm=((sLatCal-1+si)%12)+1, sny=sLatYr+Math.floor((sLatCal-1+si)/12);
+      if(sNetMoSV[snm]>0){
+        var shist=sNetMoCost[snm]/sNetMoSV[snm];
+        sSeasonLines.push('• '+sNames[snm-1]+' '+sny+': $'+shist.toFixed(2)+'/visit network hist avg'+(shist<sLatest*0.95?' — typically more efficient':shist>sLatest*1.05?' — typically less efficient':''));
+      }
+    }
+    // Improvement outlook
+    var sOutlook = '';
+    if (sMoCPVs.length < 3) sOutlook = 'With limited history ('+sMoCPVs.length+' month'+(sMoCPVs.length!==1?'s':'')+'), the campaign algorithm is still in its learning phase. Efficiency typically improves over the first 3–6 months as Google accumulates conversion signals. Avoid frequent bid or budget changes during this period.';
+    else if (sPct < -10) sOutlook = 'This site is on a positive trajectory. Maintaining current campaign settings and consistent spend should continue the downward CPV trend.';
+    else if (sPct > 10) sOutlook = 'CPV has been rising. Key levers to investigate: bid strategy (is Target CPA set too low, causing underspend?), asset quality score, and audience signal breadth. Seasonal relief may come if upcoming months historically trend lower.';
+    else sOutlook = 'Performance is relatively stable. Incremental improvement is most likely from campaign optimization — asset refresh, audience signal review, or bid strategy adjustment — rather than passive factors.';
+    // Build response
+    var sOut = 'Site ' + qSite + ' — ' + sMoCPVs.length + ' month' + (sMoCPVs.length!==1?'s':'') + ' of data (' + sMoCPVs[0].label + '–' + sMoCPVs[sMoCPVs.length-1].label + '):\n\n';
+    sOut += '• Latest CPV: $' + sLatest.toFixed(2) + '/visit\n';
+    sOut += '• Trend: ' + sTrend + '\n';
+    if (sDiff!==null) sOut += '• vs. network avg ($'+sNetCPV.toFixed(2)+'): '+(sDiff>0?'$'+sDiff.toFixed(2)+' above avg':'$'+Math.abs(sDiff).toFixed(2)+' below avg ✓')+'\n';
+    sOut += '• Best month on record: ' + sBestMo.label + ' ($' + sBestMo.cpv.toFixed(2) + '/visit)\n';
+    if (sMoCPVs.length > 1) {
+      sOut += '\nMonth-by-month:\n' + sMoCPVs.map(function(d){return '• '+d.label+': $'+d.cpv.toFixed(2)+'/visit ('+numFmt(Math.round(d.sv))+' visits)';}).join('\n');
+    }
+    if (sSeasonLines.length) sOut += '\n\nUpcoming seasonal outlook (network-wide):\n' + sSeasonLines.join('\n');
+    sOut += '\n\nOutlook: ' + sOutlook;
+    return sOut;
+  }
+
+    return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
 }
 
 /* ================================================================
