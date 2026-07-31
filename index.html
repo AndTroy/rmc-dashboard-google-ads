@@ -791,13 +791,14 @@
       </div>
       <div class="chat-suggestions">
         <span class="suggestion-chip" onclick="askChip(this)">Give me a full summary</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Which account is most efficient?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What's our cost per store visit?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Which sites need attention?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Which sites have improved recently?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">When should we add or reduce spend?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">Will CPV come down over the next 3 months?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">How do regions compare?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">How long does a new site take to ramp up?</span>
         <span class="suggestion-chip" onclick="askChip(this)">What are the active tests?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What's the benchmark for cost per visit?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Why are visits low in winter?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Who are the RMCs?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">How many locations by region?</span>
       </div>
       <div class="chat-input-row">
         <input type="text" class="chat-input" id="chatInput"
@@ -1852,7 +1853,165 @@ function answer(message) {
     return sOut;
   }
 
-    return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+
+  // ── PORTFOLIO HEALTH: top/worst sites + above/below network avg ──────────
+  if ((m.includes('top') || m.includes('best') || m.includes('worst') || m.includes('bottom') || m.includes('above') || m.includes('below') || m.includes('need attention') || m.includes('struggling') || m.includes('underperform') || m.includes('portfolio health') || m.includes('how is my portfolio')) &&
+      (m.includes('site') || m.includes('location') || m.includes('average') || m.includes('avg') || m.includes('network') || m.includes('perform') || m.includes('portfolio'))) {
+    // Build per-site CPV from filteredData
+    var phCost = {}, phSV = {};
+    filteredData.forEach(function(r) {
+      var sid = getSiteId(r['Campaign Name']||''); if (!sid) return;
+      phCost[sid] = (phCost[sid]||0) + (parseFloat(r['Cost'])||0);
+      phSV[sid]   = (phSV[sid]  ||0) + (parseFloat(r['Store Visits'])||0);
+    });
+    var phSites = Object.keys(phCost).filter(function(s){ return phSV[s]>0; });
+    if (!phSites.length) return 'No site-level data available in the current filter. Make sure data is loaded and a filter is applied.';
+    phSites.sort(function(a,b){ return phCost[a]/phSV[a] - phCost[b]/phSV[b]; });
+    var phNetCost = sumCol(rawData,'Cost'), phNetSV = sumCol(rawData,'Store Visits');
+    var phNetCPV  = phNetSV>0 ? phNetCost/phNetSV : 0;
+    var phAbove = phSites.filter(function(s){ return phCost[s]/phSV[s] > phNetCPV; });
+    var phBelow = phSites.filter(function(s){ return phCost[s]/phSV[s] <= phNetCPV; });
+    var phTop = phSites.slice(0, Math.min(5, phSites.length));
+    var phBot = phSites.slice(-Math.min(5, phSites.length)).reverse();
+    var phCtx = (function(){ var e=document.getElementById('filterRMC'), a=document.getElementById('filterAccount'); var r=e?e.value:'all', ac=a?a.value:'all'; return r!=='all'?r:ac!=='all'?shortName(ac)+' Region':'current view'; })();
+    var out = 'Portfolio health — ' + phCtx + ' (' + phSites.length + ' sites, network avg $' + phNetCPV.toFixed(2) + '/visit):\n\n';
+    out += phBelow.length + ' sites at or below network avg ✓   ' + phAbove.length + ' sites above network avg\n\n';
+    out += 'Most efficient (lowest CPV):\n' + phTop.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit' + (phCost[s]/phSV[s]<=phNetCPV?' ✓':''); }).join('\n');
+    if (phBot.length && phBot[0] !== phTop[phTop.length-1]) {
+      out += '\n\nHighest CPV (sites to review):\n' + phBot.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit (+$' + ((phCost[s]/phSV[s])-phNetCPV).toFixed(2) + ' vs avg)'; }).join('\n');
+    }
+    return out;
+  }
+
+  // ── RECENTLY IMPROVED / WORSENED ─────────────────────────────────────────
+  if ((m.includes('improv') || m.includes('better') || m.includes('worse') || m.includes('declin') || m.includes('trending') || m.includes('momentum') || m.includes('recent') || m.includes('lately') || m.includes('changed')) &&
+      (m.includes('site') || m.includes('which') || m.includes('most') || m.includes('location'))) {
+    var allMoTrend = unique(rawData,'Month').sort();
+    if (allMoTrend.length < 2) return 'Need at least 2 months of data to identify trends.';
+    // Compare last 2 months vs previous 2 months for each site
+    var tLast2 = allMoTrend.slice(-2);
+    var tPrev2 = allMoTrend.slice(-4, -2);
+    if (!tPrev2.length) tPrev2 = allMoTrend.slice(0,1);
+    var tCostL={}, tSVL={}, tCostP={}, tSVP={};
+    filteredData.forEach(function(r) {
+      var sid = getSiteId(r['Campaign Name']||''); if (!sid) return;
+      var mo = norm(r['Month']);
+      var c = parseFloat(r['Cost'])||0, v = parseFloat(r['Store Visits'])||0;
+      if (tLast2.indexOf(mo)!==-1) { tCostL[sid]=(tCostL[sid]||0)+c; tSVL[sid]=(tSVL[sid]||0)+v; }
+      if (tPrev2.indexOf(mo)!==-1) { tCostP[sid]=(tCostP[sid]||0)+c; tSVP[sid]=(tSVP[sid]||0)+v; }
+    });
+    var tSites = Object.keys(tCostL).filter(function(s){ return tSVL[s]>0 && tSVP[s]>0; });
+    if (!tSites.length) return 'Not enough overlapping site data across periods to calculate trends. Try a wider date range.';
+    var tChanges = tSites.map(function(s){
+      var cpvL = tCostL[s]/tSVL[s], cpvP = tCostP[s]/tSVP[s];
+      return { site:s, cpvNow:cpvL, cpvPrev:cpvP, pct:(cpvL-cpvP)/cpvP*100 };
+    });
+    tChanges.sort(function(a,b){ return a.pct-b.pct; });
+    var tImproved = tChanges.slice(0,Math.min(5,tChanges.length)).filter(function(d){return d.pct<0;});
+    var tWorsened = tChanges.slice(-Math.min(5,tChanges.length)).reverse().filter(function(d){return d.pct>0;});
+    var tRange = monthLabel(tPrev2[0]) + '–' + monthLabel(tLast2[tLast2.length-1]);
+    var out = 'Site CPV trends — ' + tRange + ':\n\n';
+    if (tImproved.length) {
+      out += 'Most improved (CPV coming down):\n' + tImproved.map(function(d){
+        return '• ' + d.site + ': $' + d.cpvPrev.toFixed(2) + ' → $' + d.cpvNow.toFixed(2) + ' (↓' + Math.abs(d.pct).toFixed(0) + '%)';
+      }).join('\n');
+    } else { out += 'No sites showing meaningful CPV improvement in this period.\n'; }
+    if (tWorsened.length) {
+      out += '\n\nSites to watch (CPV rising):\n' + tWorsened.map(function(d){
+        return '• ' + d.site + ': $' + d.cpvPrev.toFixed(2) + ' → $' + d.cpvNow.toFixed(2) + ' (↑' + d.pct.toFixed(0) + '%)';
+      }).join('\n');
+    } else { out += '\n\nNo sites showing a significant CPV increase in this period.\n'; }
+    return out;
+  }
+
+  // ── REGION COMPARISON ────────────────────────────────────────────────────
+  if ((m.includes('compar') && (m.includes('region') || m.includes('account'))) ||
+      (m.includes('region') && (m.includes('vs') || m.includes('versus') || m.includes('rank') || m.includes('best') || m.includes('efficient') || m.includes('perform'))) ||
+      (m.includes('which region') && (m.includes('best') || m.includes('efficient') || m.includes('worst') || m.includes('top'))) ||
+      m.includes('region comparison') || m.includes('regional performance')) {
+    var rcAccounts = unique(rawData,'Account Name');
+    if (rcAccounts.length < 2) return 'Only one region in the data — no comparison available.';
+    var rcCost = groupSum(rawData,'Account Name','Cost');
+    var rcSV   = groupSum(rawData,'Account Name','Store Visits');
+    var rcNetCPV = sumCol(rawData,'Store Visits')>0 ? sumCol(rawData,'Cost')/sumCol(rawData,'Store Visits') : 0;
+    var rcRanked = rcAccounts.filter(function(a){ return rcSV[a]>0; }).sort(function(a,b){ return rcCost[a]/rcSV[a]-rcCost[b]/rcSV[b]; });
+    var out = 'Region CPV comparison (all data, ranked most to least efficient):\n\n';
+    rcRanked.forEach(function(a){
+      var cpv = rcCost[a]/rcSV[a];
+      var diff = cpv - rcNetCPV;
+      out += '• ' + shortName(a) + ': $' + cpv.toFixed(2) + '/visit' +
+        (diff<0 ? ' ($'+Math.abs(diff).toFixed(2)+' below avg ✓)' : ' ($'+diff.toFixed(2)+' above avg)') + '\n';
+    });
+    out += '\nNetwork avg: $' + rcNetCPV.toFixed(2) + '/visit\n\n';
+    // Trend context: compare most recent month to prior month per region
+    var rcAllMo = unique(rawData,'Month').sort();
+    if (rcAllMo.length >= 2) {
+      var rcLast = rcAllMo[rcAllMo.length-1], rcPrev = rcAllMo[rcAllMo.length-2];
+      var rcLdata = rawData.filter(function(r){return norm(r['Month'])===rcLast;});
+      var rcPdata = rawData.filter(function(r){return norm(r['Month'])===rcPrev;});
+      var rcLCost=groupSum(rcLdata,'Account Name','Cost'), rcLSV=groupSum(rcLdata,'Account Name','Store Visits');
+      var rcPCost=groupSum(rcPdata,'Account Name','Cost'), rcPSV=groupSum(rcPdata,'Account Name','Store Visits');
+      var trending = rcAccounts.filter(function(a){ return rcLSV[a]>0&&rcPSV[a]>0; }).map(function(a){
+        return {name:shortName(a), pct:(rcLCost[a]/rcLSV[a]-rcPCost[a]/rcPSV[a])/(rcPCost[a]/rcPSV[a])*100};
+      }).sort(function(a,b){return a.pct-b.pct;});
+      if (trending.length) {
+        out += monthLabel(rcPrev)+'→'+monthLabel(rcLast)+' trend: ' +
+          trending.map(function(t){ return t.name+(t.pct<0?' ↓'+Math.abs(t.pct).toFixed(0)+'%':' ↑'+t.pct.toFixed(0)+'%'); }).join(', ');
+      }
+    }
+    return out;
+  }
+
+  // ── NEW SITE RAMP-UP ─────────────────────────────────────────────────────
+  if (m.includes('new site') || m.includes('just launched') || m.includes('ramp up') || m.includes('ramp-up') ||
+      (m.includes('how long') && (m.includes('see result') || m.includes('take') || m.includes('improve') || m.includes('reach'))) ||
+      (m.includes('first') && (m.includes('month') || m.includes('months')) && (m.includes('site') || m.includes('campaign') || m.includes('result') || m.includes('expect'))) ||
+      (m.includes('new') && m.includes('campaign') && (m.includes('when') || m.includes('expect') || m.includes('long')))) {
+    // Bucket sites by how many months of data they have in rawData
+    var rnSiteMo = {};
+    rawData.forEach(function(r){
+      var sid=getSiteId(r['Campaign Name']||''); if(!sid)return;
+      var mo=norm(r['Month']); if(!mo)return;
+      if(!rnSiteMo[sid]) rnSiteMo[sid]={};
+      rnSiteMo[sid][mo]=true;
+    });
+    var rnBuckets = {'1-2':[], '3-4':[], '5-6':[], '7+':[]};
+    Object.keys(rnSiteMo).forEach(function(s){
+      var n=Object.keys(rnSiteMo[s]).length;
+      if(n<=2) rnBuckets['1-2'].push(s);
+      else if(n<=4) rnBuckets['3-4'].push(s);
+      else if(n<=6) rnBuckets['5-6'].push(s);
+      else rnBuckets['7+'].push(s);
+    });
+    // Average CPV per bucket
+    function bucketCPV(sites) {
+      var bc=0,bv=0;
+      rawData.forEach(function(r){
+        var sid=getSiteId(r['Campaign Name']||'');
+        if(sites.indexOf(sid)===-1)return;
+        bc+=(parseFloat(r['Cost'])||0); bv+=(parseFloat(r['Store Visits'])||0);
+      });
+      return bv>0?bc/bv:null;
+    }
+    var rnNetCPV = sumCol(rawData,'Store Visits')>0?sumCol(rawData,'Cost')/sumCol(rawData,'Store Visits'):0;
+    var out = 'New site ramp-up — typical Performance Max efficiency curve:\n\n';
+    var bucketLabels = {'1-2':'Months 1–2 (learning phase)','3-4':'Months 3–4 (building signals)','5-6':'Months 5–6 (stabilizing)','7+':'Month 7+ (mature)'};
+    ['1-2','3-4','5-6','7+'].forEach(function(b){
+      var cpv=bucketCPV(rnBuckets[b]);
+      var n=rnBuckets[b].length;
+      out += '• ' + bucketLabels[b] + ': ' + (cpv?'$'+cpv.toFixed(2)+'/visit avg':' insufficient data') + ' (' + n + ' site'+(n!==1?'s':'')+' in dataset)\n';
+    });
+    out += '\nNetwork avg (all sites): $' + rnNetCPV.toFixed(2) + '/visit\n\n';
+    out += 'What to expect:\n';
+    out += '• Months 1–2: CPV is typically highest as the algorithm explores. Avoid pausing or making major bid changes — this disrupts the learning phase.\n';
+    out += '• Months 3–4: Efficiency improves meaningfully as Google accumulates conversion signals. CPV should begin tracking toward the network average.\n';
+    out += '• Months 5–6: Most sites stabilize near or below the network average with consistent spend.\n';
+    out += '• Month 7+: Campaigns are mature. Remaining inefficiency usually reflects local market conditions, not algorithm learning.\n\n';
+    out += 'Tip: Consistent spend accelerates learning. Frequent budget or bid changes in months 1–3 can reset the algorithm and extend the ramp-up period.';
+    return out;
+  }
+
+      return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
 }
 
 /* ================================================================
