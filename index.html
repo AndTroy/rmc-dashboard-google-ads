@@ -1625,6 +1625,45 @@ function answer(message) {
     return numFmt(Math.round(totalImps)) + ' total impressions (avg CPM: $' + cpm.toFixed(2) + ').';
   }
 
+
+  // ── REGION COMPARISON ────────────────────────────────────────────────────
+  if ((m.includes('compar') && (m.includes('region') || m.includes('account'))) ||
+      (m.includes('region') && (m.includes('vs') || m.includes('versus') || m.includes('rank') || m.includes('best') || m.includes('efficient') || m.includes('perform'))) ||
+      (m.includes('which region') && (m.includes('best') || m.includes('efficient') || m.includes('worst') || m.includes('top'))) ||
+      m.includes('region comparison') || m.includes('regional performance')) {
+    var rcAccounts = unique(rawData,'Account Name');
+    if (rcAccounts.length < 2) return 'Only one region in the data — no comparison available.';
+    var rcCost = groupSum(rawData,'Account Name','Cost');
+    var rcSV   = groupSum(rawData,'Account Name','Store Visits');
+    var rcNetCPV = sumCol(rawData,'Store Visits')>0 ? sumCol(rawData,'Cost')/sumCol(rawData,'Store Visits') : 0;
+    var rcRanked = rcAccounts.filter(function(a){ return rcSV[a]>0; }).sort(function(a,b){ return rcCost[a]/rcSV[a]-rcCost[b]/rcSV[b]; });
+    var out = 'Region CPV comparison (all data, ranked most to least efficient):\n\n';
+    rcRanked.forEach(function(a){
+      var cpv = rcCost[a]/rcSV[a];
+      var diff = cpv - rcNetCPV;
+      out += '• ' + shortName(a) + ': $' + cpv.toFixed(2) + '/visit' +
+        (diff<0 ? ' ($'+Math.abs(diff).toFixed(2)+' below avg ✓)' : ' ($'+diff.toFixed(2)+' above avg)') + '\n';
+    });
+    out += '\nNetwork avg: $' + rcNetCPV.toFixed(2) + '/visit\n\n';
+    // Trend context: compare most recent month to prior month per region
+    var rcAllMo = unique(rawData,'Month').sort();
+    if (rcAllMo.length >= 2) {
+      var rcLast = rcAllMo[rcAllMo.length-1], rcPrev = rcAllMo[rcAllMo.length-2];
+      var rcLdata = rawData.filter(function(r){return norm(r['Month'])===rcLast;});
+      var rcPdata = rawData.filter(function(r){return norm(r['Month'])===rcPrev;});
+      var rcLCost=groupSum(rcLdata,'Account Name','Cost'), rcLSV=groupSum(rcLdata,'Account Name','Store Visits');
+      var rcPCost=groupSum(rcPdata,'Account Name','Cost'), rcPSV=groupSum(rcPdata,'Account Name','Store Visits');
+      var trending = rcAccounts.filter(function(a){ return rcLSV[a]>0&&rcPSV[a]>0; }).map(function(a){
+        return {name:shortName(a), pct:(rcLCost[a]/rcLSV[a]-rcPCost[a]/rcPSV[a])/(rcPCost[a]/rcPSV[a])*100};
+      }).sort(function(a,b){return a.pct-b.pct;});
+      if (trending.length) {
+        out += monthLabel(rcPrev)+'→'+monthLabel(rcLast)+' trend: ' +
+          trending.map(function(t){ return t.name+(t.pct<0?' ↓'+Math.abs(t.pct).toFixed(0)+'%':' ↑'+t.pct.toFixed(0)+'%'); }).join(', ');
+      }
+    }
+    return out;
+  }
+
   // Account-specific query
   for (var i = 0; i < accounts.length; i++) {
     var acc = accounts[i];
@@ -1886,7 +1925,7 @@ function answer(message) {
   // ── RECENTLY IMPROVED / WORSENED ─────────────────────────────────────────
   if ((m.includes('improv') || m.includes('better') || m.includes('worse') || m.includes('declin') || m.includes('trending') || m.includes('momentum') || m.includes('recent') || m.includes('lately') || m.includes('changed')) &&
       (m.includes('site') || m.includes('which') || m.includes('most') || m.includes('location'))) {
-    var allMoTrend = unique(rawData,'Month').sort();
+    var allMoTrend = unique(filteredData,'Month').sort();
     if (allMoTrend.length < 2) return 'Need at least 2 months of data to identify trends.';
     // Compare last 2 months vs previous 2 months for each site
     var tLast2 = allMoTrend.slice(-2);
@@ -1921,44 +1960,6 @@ function answer(message) {
         return '• ' + d.site + ': $' + d.cpvPrev.toFixed(2) + ' → $' + d.cpvNow.toFixed(2) + ' (↑' + d.pct.toFixed(0) + '%)';
       }).join('\n');
     } else { out += '\n\nNo sites showing a significant CPV increase in this period.\n'; }
-    return out;
-  }
-
-  // ── REGION COMPARISON ────────────────────────────────────────────────────
-  if ((m.includes('compar') && (m.includes('region') || m.includes('account'))) ||
-      (m.includes('region') && (m.includes('vs') || m.includes('versus') || m.includes('rank') || m.includes('best') || m.includes('efficient') || m.includes('perform'))) ||
-      (m.includes('which region') && (m.includes('best') || m.includes('efficient') || m.includes('worst') || m.includes('top'))) ||
-      m.includes('region comparison') || m.includes('regional performance')) {
-    var rcAccounts = unique(rawData,'Account Name');
-    if (rcAccounts.length < 2) return 'Only one region in the data — no comparison available.';
-    var rcCost = groupSum(rawData,'Account Name','Cost');
-    var rcSV   = groupSum(rawData,'Account Name','Store Visits');
-    var rcNetCPV = sumCol(rawData,'Store Visits')>0 ? sumCol(rawData,'Cost')/sumCol(rawData,'Store Visits') : 0;
-    var rcRanked = rcAccounts.filter(function(a){ return rcSV[a]>0; }).sort(function(a,b){ return rcCost[a]/rcSV[a]-rcCost[b]/rcSV[b]; });
-    var out = 'Region CPV comparison (all data, ranked most to least efficient):\n\n';
-    rcRanked.forEach(function(a){
-      var cpv = rcCost[a]/rcSV[a];
-      var diff = cpv - rcNetCPV;
-      out += '• ' + shortName(a) + ': $' + cpv.toFixed(2) + '/visit' +
-        (diff<0 ? ' ($'+Math.abs(diff).toFixed(2)+' below avg ✓)' : ' ($'+diff.toFixed(2)+' above avg)') + '\n';
-    });
-    out += '\nNetwork avg: $' + rcNetCPV.toFixed(2) + '/visit\n\n';
-    // Trend context: compare most recent month to prior month per region
-    var rcAllMo = unique(rawData,'Month').sort();
-    if (rcAllMo.length >= 2) {
-      var rcLast = rcAllMo[rcAllMo.length-1], rcPrev = rcAllMo[rcAllMo.length-2];
-      var rcLdata = rawData.filter(function(r){return norm(r['Month'])===rcLast;});
-      var rcPdata = rawData.filter(function(r){return norm(r['Month'])===rcPrev;});
-      var rcLCost=groupSum(rcLdata,'Account Name','Cost'), rcLSV=groupSum(rcLdata,'Account Name','Store Visits');
-      var rcPCost=groupSum(rcPdata,'Account Name','Cost'), rcPSV=groupSum(rcPdata,'Account Name','Store Visits');
-      var trending = rcAccounts.filter(function(a){ return rcLSV[a]>0&&rcPSV[a]>0; }).map(function(a){
-        return {name:shortName(a), pct:(rcLCost[a]/rcLSV[a]-rcPCost[a]/rcPSV[a])/(rcPCost[a]/rcPSV[a])*100};
-      }).sort(function(a,b){return a.pct-b.pct;});
-      if (trending.length) {
-        out += monthLabel(rcPrev)+'→'+monthLabel(rcLast)+' trend: ' +
-          trending.map(function(t){ return t.name+(t.pct<0?' ↓'+Math.abs(t.pct).toFixed(0)+'%':' ↑'+t.pct.toFixed(0)+'%'); }).join(', ');
-      }
-    }
     return out;
   }
 
