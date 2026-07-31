@@ -1646,9 +1646,9 @@ function answer(message) {
     });
     out += '\nNetwork avg: $' + rcNetCPV.toFixed(2) + '/visit\n\n';
     // Trend context: compare most recent month to prior month per region
-    var rcAllMo = unique(rawData,'Month').sort();
+    var rcAllMo = unique(rawData,'Month').sort().map(function(m){return norm(m);});
     if (rcAllMo.length >= 2) {
-      var rcLast = rcAllMo[rcAllMo.length-1], rcPrev = rcAllMo[rcAllMo.length-2];
+      var rcLast = norm(rcAllMo[rcAllMo.length-1]), rcPrev = norm(rcAllMo[rcAllMo.length-2]);
       var rcLdata = rawData.filter(function(r){return norm(r['Month'])===rcLast;});
       var rcPdata = rawData.filter(function(r){return norm(r['Month'])===rcPrev;});
       var rcLCost=groupSum(rcLdata,'Account Name','Cost'), rcLSV=groupSum(rcLdata,'Account Name','Store Visits');
@@ -1776,7 +1776,7 @@ function answer(message) {
       q2MoSV[cm]   = (q2MoSV[cm]  ||0) + (parseFloat(r['Store Visits'])||0);
     });
     // Current trend from filteredData
-    var q2AllMo = unique(rawData,'Month').sort();
+    var q2AllMo = unique(rawData,'Month').sort().map(function(m){return norm(m);});
     var q2LatestMo = q2AllMo[q2AllMo.length-1];
     var q2LatestCal = parseInt(q2LatestMo.split('-')[1], 10);
     var q2LatestYr  = parseInt(q2LatestMo.split('-')[0], 10);
@@ -1854,7 +1854,7 @@ function answer(message) {
     // Best month on record
     var sBestMo = sMoCPVs.slice().sort(function(a,b){return a.cpv-b.cpv;})[0];
     // Seasonal next 3 months (network-level)
-    var sAllMo = unique(rawData,'Month').sort();
+    var sAllMo = unique(rawData,'Month').sort().map(function(m){return norm(m);});
     var sLatestMo = sAllMo[sAllMo.length-1];
     var sLatCal = parseInt(sLatestMo.split('-')[1],10);
     var sLatYr  = parseInt(sLatestMo.split('-')[0],10);
@@ -1925,11 +1925,11 @@ function answer(message) {
   // ── RECENTLY IMPROVED / WORSENED ─────────────────────────────────────────
   if ((m.includes('improv') || m.includes('better') || m.includes('worse') || m.includes('declin') || m.includes('trending') || m.includes('momentum') || m.includes('recent') || m.includes('lately') || m.includes('changed')) &&
       (m.includes('site') || m.includes('which') || m.includes('most') || m.includes('location'))) {
-    var allMoTrend = unique(filteredData,'Month').sort();
+    var allMoTrend = unique(filteredData,'Month').sort().map(function(m){return norm(m);});
     if (allMoTrend.length < 2) return 'Need at least 2 months of data to identify trends.';
     // Compare last 2 months vs previous 2 months for each site
-    var tLast2 = allMoTrend.slice(-2);
-    var tPrev2 = allMoTrend.slice(-4, -2);
+    var tLast2 = allMoTrend.slice(-2).map(function(m){return norm(m);});
+    var tPrev2 = allMoTrend.slice(-4, -2).map(function(m){return norm(m);});
     if (!tPrev2.length) tPrev2 = allMoTrend.slice(0,1);
     var tCostL={}, tSVL={}, tCostP={}, tSVP={};
     filteredData.forEach(function(r) {
