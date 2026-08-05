@@ -398,7 +398,7 @@
     th {
       text-align: left;
       padding: 9px 12px;
-      background: var(--gray);
+      background: var(--gray`;
       font-weight: 700;
       font-size: 10px;
       text-transform: uppercase;
@@ -486,7 +486,7 @@
     .msg.user {
       background: var(--red);
       color: white;
-      align-self: flex-end;
+       align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
 
@@ -793,12 +793,17 @@
         <span class="suggestion-chip" onclick="askChip(this)">Give me a full summary</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites need attention?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites have improved recently?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">When should we add or reduce spend?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">When should we add or leduce spend?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Will CPV come down over the next 3 months?</span>
         <span class="suggestion-chip" onclick="askChip(this)">How do regions compare?</span>
         <span class="suggestion-chip" onclick="askChip(this)">How long does a new site take to ramp up?</span>
         <span class="suggestion-chip" onclick="askChip(this)">What are the active tests?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Why are visits low in winter?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What CPV should we be targeting?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">How do PMax and Search campaigns compare?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What's our best CPV on record?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What's our click-to-visit conversion rate?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What should we do about underperforming sites?</span>
       </div>
       <div class="chat-input-row">
         <input type="text" class="chat-input" id="chatInput"
@@ -850,9 +855,9 @@ var allCampaigns = []; // populated in initDashboard
 /* RMC → site ID lookup (sourced from RMC Assignments reference) */
 var RMC_SITES = {
   'Erik Durham':    ['AL374','AR129','AR143','AR18','AR375','AR91','AZ217','AZ452','AZ453','FL08','FL105','FL138','FL183','FL193','FL194','FL20','FL207','FL21','FL216','FL28','FL31','FL332','FL333','FL340','FL344','FL346','FL347','FL350','FL356','FL380','FL383','FL409','FL413','FL415','FL437','FL57','FL74','FR357','GA212','GA26','GA419','GA42','GA61','GA75','IN403','LA114','LA118','LA144','LA27','LA92','MI166','MI170','MI208','MI229','MS349','NC130','NC205','NC477','NM113','OK117','OK121','OK157','OK167','OK168','OK209','OK330','OK342','OK393','ON203','SC126','SC479','TN180','TN182','TN192','TN29','TN89','TX111','TX154','TX160','TX17','TX175','TX190','TX215','TX34','TX358','TX359','TX364','TX412','TX429','TX451','TX480','TX72','UT426'],
-  'Emily Lenau':    ['DE112','DE66','IA150','IA36','IA377','IA69','IA81','IA82','IA87','IA94','IL125','IL164','IL188','IL348','IL54','IL99','IN25','MI124','MI147','MI159','MI176','MI185','MI210','MI23','MI341','MI345','MI355','MI386','MI443','MI470','MI48','MI481','MN108','MN116','MN173','MN362','MN378','MN407','MN408','MN438','MN83','MN88','MO156','MO218','MO58','MO77','ND132','ND354','ND360','ND361','OH134','OH433','OH449','PA123','PA135','PA343','PA372','PA467','SD165','VA115','VA12','VA220','VA424','VA76','WI141','WI184','WI334','WI382','WI418','WI454','WI70','WI71','WY201'],
-  'Joel Fullmer':   ['MD213','MD366','MD369','MD435','NC45','NC62','NE10','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','OH471','OH472','OH473','OH474','OH475','OK204','OK442','OK476','PA337','PA368','PA464','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX417','TX428','TX431','TX432','TX445','TX463','UT414','VA162'],
-  'Matt Witkowski':  ['AK401','AK402','AR67','CA09','CA102','CA136','CA140','CA149','CA178','CO30','CO338','CO35','CO394','IA163','ID158','ID169','ID416','ID53','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','KY422','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV478','OK84','OK90','OK336','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110'],
+  'Emily Lenau':    ['DE112','DE66','IA150','IA36','IA377','IA69','IA81','IA82','IA87','IA94','IL125','IL164','IL188','IL348','IL54','IL99','IN25','MI124','MI47','MI159','MI176','MI185','MI210','MI23','MI341','MI345','MI355','MI386','MI443','MI470','MI48','MI481','MN108','MN116','MN173','MN362','MN378','MN413','MN408','MN438','MN83','MN88','MO156','MO218','MO58','MO77','ND132','ND354','ND360','ND361','OH134','OH433','OH449','PA123','PA195','PA343','PA372','PA477','SD165','VA115','VA12','VA220','VA423','VA76','WI141','WI184','WI334','WI382','WI418','WI454','WI70','WI71','WY201'],
+  'Joel Fullmer':   ['MD213','MD366','MD369','MD433','NC45','NC62','NE10','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','OH471','OH472','OH473','OH474','OH475','OK203','OK442','OK476','PA338','PA368','PA463','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX517','TX428','TX431','TX432','TX445','TX463','UT413','VA162'],
+  'Matt Witkowski':  ['AK401','AK402','AR67','CA09','CA102','CA140','CA149','CA178','CO30','CO338','CO35','CO394','IA163','ID158','ID169','ID416','ID53','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','KY422','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV478','OK84','OK90','OK336','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110'],
   'Megan Meerman':  ['FL331','MI03','MI11','MI214','MI223','MI224','MI32','MI37','MI376','MI381','MI391','MI421','MI423','MI425','OH40']
 };
 
@@ -1387,7 +1392,7 @@ function answer(message) {
       (m.includes('zip') && m.includes('target')) ||
       (m.includes('test') && (m.includes('target cpa') || m.includes('current') || m.includes('active') || m.includes('running') || m.includes('what')))) {
     return 'Active tests as of July 2026:\n\n' +
-      '1. Target CPA ($2.10) — since April 22. Applied to underperforming PMax sites. Currently active: CO35, IL125, MI147, MI214, MI421, MI425, MN108, MN378, IA94, FL347, TX417, TX359, OK90, TX34. Improves efficiency but risks underspending; best as a short-term intervention, not a permanent setting.\n\n' +
+      '1. Target CPA ($2.10) — since April 22. Applied to underperforming PMax sites. Currently active: CO35, IL125, MI147, MI214, MI421, MI425, MN108, MN378, IA34, FLC47, TX417, TX359, OK90, TX34. Improves efficiency but risks underspending; best as a short-term intervention, not a permanent setting.\n\n' +
       '2. First Wash Free asset group — since June 1. Adds an FWF asset group alongside the standard store visit group (not replacing it). Results through July 6: $1.95 CPA for additive group vs. $2.73 for replacement group and $2.67 for control. Recommendation: add alongside, do not replace.\n\n' +
       '3. ZIP Code vs. Radius targeting — since June 15. Testing zip-code targeting against standard radius-based geo. Site IDs not yet documented.\n\n' +
       '4. FMF vs. FWF vs. Site Visit CPA comparison — early planning stage, July 2026. Parallel Meta SMS test in scope.\n\n' +
@@ -1423,7 +1428,7 @@ function answer(message) {
       '• Performance Max — bid: Maximize Conversions, goal: Store Visits. Core type for all locations.\n' +
       '• Search — bid: Maximize Conversions, goal: FMF Claims (First Month Free). Store Visits tracked as secondary.\n' +
       '• Video — goal: Store Visits. Seasonal; not running year-round.\n' +
-      '• Display — goals: Submit Lead Form, Page View.\n' +
+      '• Display — goals: �Submit Lead Form, Page View.\n' +
       '• Demand Gen — goal: Page Views.';
   }
 
@@ -1455,10 +1460,10 @@ function answer(message) {
   if (m.includes('rmc') || m.includes('regional marketing') || m.includes('coordinator') ||
       m.includes('who manages') || m.includes('who handles') || m.includes('who is responsible')) {
     if (m.includes('erik') || m.includes('durham')) {
-      return 'Erik Durham manages Southeast and Southwest locations plus select others: AL374, AZ (217, 452, 453), FL (08, 105, 138, 183, 193, 194, 20, 207, 21, 216, 28, 31, 332, 333, 340, 344, 346, 347, 350, 356, 380, 383, 409, 413, 415, 437, 57, 74), GA (212, 26, 419, 42, 61, 75), IN403, LA (114, 118, 144, 27, 92), MI (166, 170, 208, 229), MS349, NC (130, 205, 477), NM113, OK (117, 121, 157, 167, 168, 209, 330, 342, 393), SC (126, 479), TN (180, 182, 192, 29, 89), TX (111, 154, 160, 17, 175, 190, 215, 34, 358, 359, 364, 412, 429, 451, 480, 72), UT426. Note: FR357 and ON203 are also assigned but are international sites.';
+      return 'Erik Durham manages Southeast and Southwest locations plus select others: AL374, AX L�17, 452, 453), FL (08, 105, 138, 183, 193, 194, 20, 207, 21, 216, 28, 31, 332, 333, 340, 344, 346, 347, 350, 356, 380, 383, 409, 413, 415, 437, 57, 74), GA (212, 26, 419, 42, 61, 75), IN403, LA (114, 118, 144, 27, 92), MI (166, 170, 208, 229), MS349, NC (130, 205, 477), NM113, OK (117, 121, 157, 167, 168, 209, 330, 342, 393), SC (126, 479), TN (180, 182, 192, 29, 89), TX (111, 154, 160, 17, 175, 190, 215, 34, 358, 359, 364, 412, 429, 451, 480, 72), UT426. Note: FR357 and ON203 are also assigned but are international sites.';
     }
     if (m.includes('emily') || m.includes('lenau')) {
-      return 'Emily Lenau manages Midwest locations: DE (112, 66), IA (150, 36, 377, 69, 81, 82, 87, 94), IL (125, 164, 188, 348, 54, 99), IN25, MI (124, 147, 159, 176, 185, 210, 23, 341, 345, 355, 386, 443, 470, 48, 481), MN (108, 116, 173, 362, 378, 407, 408, 438, 83, 88), MO (156, 218, 58, 77), ND (132, 354, 360, 361), OH (134, 433, 449), PA (123, 135, 343, 372, 467), SD165, VA (115, 12, 220, 424, 76), WI (141, 184, 334, 382, 418, 454, 70, 71), WY201.';
+      return 'Emily Lenau manages Midwest locations: DE (112, 66), IA (150, 36, 377, 69, 81, 82, 87, 94), IL (125, 164, 188, 348, 54, 99), IN25, MI x124, 147, 159, 176, 185, 210, 23, 341, 345, 355, 386, 443, 470, 48, 481), MN (108, 116, 173, 362, 378, 407, 408, 438, 83, 88), MO (156, 218, 58, 77), ND (132, 354, 360, 361), OH (134, 433, 449), PA (123, 135, 343, 372, 467), SD165, VA (115, 12, 220, 424, 76), WI (141, 184, 334, 382, 418, 454, 70, 71), WY201.';
     }
     if (m.includes('joel') || m.includes('fullmer')) {
       return 'Joel Fullmer manages: MD (213, 366, 369, 435), NC (45, 62), NE (10, 379, 39, 441, 444, 458, 461, 465, 79), OH (471, 472, 473, 474, 475), OK (204, 442, 476), PA (337, 368, 464, 93), SC (339, 371, 411, 430, 440, 63), TX (07, 221, 370, 399, 417, 428, 431, 432, 445, 463), UT414, VA162.';
@@ -1495,7 +1500,7 @@ function answer(message) {
   // Budget per location
   if (m.includes('$250') ||
       (m.includes('budget') && (m.includes('per location') || m.includes('each location') || m.includes('standard') || m.includes('baseline') || m.includes('location')))) {
-    return 'Standard monthly budget: $250 per participating location, funding one Performance Max campaign. Franchise partners may invest additional spend above this baseline (invoiced monthly). At the standard rate across ~266 locations, the baseline network budget is approximately $66,500/month. All accounts use unlimited account-level spending — control is at the campaign level. Reconciliation is tracked in an external spreadsheet.';
+    return 'Standard monthly budget: $250 per participating location, funding one Performance Max campaign. Franchise partners may invest additional spend above this baseline (invoiced monthly+. At the standard rate across ~266 locations, the baseline network budget is approximately $66,500/month. All accounts use unlimited account-level spending — control is at the campaign level. Reconciliation is tracked in an external spreadsheet.';
   }
 
   // Campaign naming convention
@@ -1562,7 +1567,7 @@ function answer(message) {
     if (totalSV === 0)
       return 'No store visit data found in the current filter. Check that your CSV contains the "Store Visits" column with non-zero values.';
     var svByMonth = groupSum(filteredData, 'Month', 'Store Visits');
-    var bestSVMonth = Object.keys(svByMonth).sort(function(a,b){ return svByMonth[b]-svByMonth[a]; })[0];
+    var bestSVMonth = Object.keys(svByMonth).sort(function(a,b){ return swByMonth[b]-svByMonth[a]; })[0];
     return numFmt(Math.round(totalSV)) + ' total store visits. Best month: ' +
       monthLabel(bestSVMonth) + ' (' + numFmt(Math.round(svByMonth[bestSVMonth])) + ' visits).';
   }
@@ -1740,7 +1745,7 @@ function answer(message) {
     var q1Worst = q1Mos.slice(-Math.min(3, q1Mos.length)).reverse();
     var q1Ctx   = ctxRMC !== 'all' ? ctxRMC : (ctxAcc !== 'all' ? shortName(ctxAcc)+' Region' : 'full network');
     return 'Seasonal spend timing — ' + q1Ctx + ' (historical avg CPV by month):\n\n' +
-      'Add spend — most efficient months:\n' +
+      'Add spend — inst efficient months:\n' +
       q1Best.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
       '\n\nConsider reducing or holding spend — least efficient months:\n' +
       q1Worst.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
@@ -1825,6 +1830,91 @@ function answer(message) {
   }
 
   // ── Q3: SITE-SPECIFIC EFFICIENCY — detect site ID in message ────────────
+
+  // ── Q9: SITE DIAGNOSTIC (why is [site] underperforming) ─────────────────
+  var q9site = (m.toUpperCase().match(/\b([A-Z]{2,3}\d{2,4})\b/)||[])[1];
+  if (q9site && (m.includes('why') || m.includes('diagnos') || m.includes('underperform') || m.includes('problem') || m.includes('issue') || m.includes("what's wrong") || m.includes('struggling'))) {
+    var sid9 = q9site;
+    var sRows9 = rawData.filter(function(r){ return getSiteId(r['Campaign Name']||'')===sid9; });
+    if (!sRows9.length) return 'No data found for site '+sid9+'.';
+    var sCost9=sumCol(sRows9,'Cost'), sSV9=sumCol(sRows9,'Store Visits');
+    var sCPV9=sSV9>0?sCost9/sSV9:null;
+    var netCPV9=sumCol(rawData,'Store Visits')>0?sumCol(rawData,'Cost')/sumCol(rawData,'Store Visits'):0;
+    var sMos9=unique(sRows9,'Month').sort().map(function(x){return norm(x);});
+    var moCPV9=sMos9.map(function(mo){
+      var d=sRows9.filter(function(r){return norm(r['Month'])===mo;});
+      var c=sumCol(d,'Cost'),v=sumCol(d,'Store Visits');
+      return {mo:mo,cpv:v>0?c/v:null};
+    }).filter(function(x){return x.cpv!==null;});
+    var consec9=0;
+    for(var i9=moCPV9.length-1;i9>0;i9--){if(moCPV9[i9].cpv<moCPV9[i9-1].cpv)consec9++;else break;}
+    var trendDir9=moCPV9.length>=2?(moCPV9[moCPV9.length-1].cpv<moCPV9[0].cpv?'improving':'rising'):'unclear';
+    var camps9=unique(sRows9,'Campaign Name');
+    var hasPMax9=camps9.some(function(c){return c.toLowerCase().includes('pmax')||c.toLowerCase().includes('performance max');});
+    var hasSearch9=camps9.some(function(c){return !c.toLowerCase().includes('pmax')&&!c.toLowerCase().includes('performance max')&&(c.toLowerCase().includes('search')||c.toLowerCase().includes('brand')||c.toLowerCase().includes('local'));});
+    // Peers at same maturity
+    var allSiteIds9=[];
+    rawData.forEach(function(r){var s=getSiteId(r['Campaign Name']||'');if(s&&allSiteIds9.indexOf(s)===-1)allSiteIds9.push(s);});
+    var peerIds9=allSiteIds9.filter(function(s){
+      if(s===sid9)return false;
+      var sm=unique(rawData.filter(function(r){return getSiteId(r['Campaign Name']||'')===s;}),'Month').length;
+      return Math.abs(sm-sMos9.length)<=1;
+    });
+    var peerRows9=rawData.filter(function(r){return peerIds9.indexOf(getSiteId(r['Campaign Name']||''))!==-1;});
+    var peerCPV9=sumCol(peerRows9,'Store Visits')>0?sumCol(peerRows9,'Cost')/sumCol(peerRows9,'Store Visits'):null;
+    var out9='Diagnostic — '+sid9+' ($'+(sCPV9||0).toFixed(2)+'/visit overall):\n\n';
+    if(sCPV9&&netCPV9){
+      var diff9=sCPV9-netCPV9;
+      out9+=diff9>0?'⚠ $'+diff9.toFixed(2)+' above network avg ($'+netCPV9.toFixed(2)+'/visit)\n':'✓ $'+Math.abs(diff9).toFixed(2)+' below network avg ($'+netCPV9.toFixed(2)+'/visit)\n';
+    }
+    out9+='• Months of data: '+sMos9.length+(sMos9.length<4?' — still in learning phase':'')+'\n';
+    if(peerCPV9)out9+='• Peers at same maturity: $'+peerCPV9.toFixed(2)+'/visit avg ('+peerIds9.length+' sites)\n';
+    out9+='• Campaign types: '+(hasPMax9&&hasSearch9?'PMax + Search/Brand':hasPMax9?'PMax only':hasSearch9?'Search/Brand only':'unclassified')+'\n';
+    if(moCPV9.length>=2)out9+='• Recent trend: '+trendDir9+' ('+consec9+' consecutive improving month'+(consec9!==1?'s':'')+')\n';
+    out9+='\nLikely factors:\n';
+    if(sMos9.length<4)out9+='→ New site — Performance Max is still in its learning phase. Hold spend steady and avoid bid changes.\n';
+    if(!hasPMax9)out9+='→ No PMax campaign detected. Consider adding Performance Max alongside Search.\n';
+    if(peerCPV9&&sCPV9&&sCPV9>peerCPV9*1.2)out9+='→ CPV is 20%+ above peers at same maturity — campaign structure or spend level may need review.\n';
+    if(trendDir9==='rising')out9+='→ CPV trending up recently — possible increased competition or a reduced impression share.\n';
+    if(trendDir9==='improving')out9+='→ CPV trending down — current strategy is working. Maintain consistent spend.\n';
+    return out9;
+  }
+
+  // ── Q12: TREND SUSTAINABILITY ([site] improvement continuing?) ────────────
+  var q12site = (m.toUpperCase().match(/\b([A-Z]{2,3}\d{2,4})\b/)||[])[1];
+  if (q12site && (m.includes('continu') || m.includes('sustain') || m.includes('keep up') || m.includes('keep going') || m.includes('last') || m.includes('hold') || m.includes('stick') || (m.includes('real') && m.includes('improv')))) {
+    var sid12=q12site;
+    var sRows12=rawData.filter(function(r){return getSiteId(r['Campaign Name']||'')===sid12;});
+    if(!sRows12.length)return 'No data found for site '+sid12+'.';
+    var sMos12=unique(sRows12,'Month').sort().map(function(x){return norm(x);});
+    var moCPV12=sMos12.map(function(mo){
+      var d=sRows12.filter(function(r){return norm(r['Month'])===mo;});
+      var c=sumCol(d,'Cost'),v=sumCol(d,'Store Visits');
+      return {mo:mo,cpv:v>0?c/v:null};
+    }).filter(function(x){return x.cpv!==null;});
+    if(moCPV12.length<2)return 'Not enough data for '+sid12+' to assess trend sustainability.';
+    var consec12=0;
+    for(var i12=moCPV12.length-1;i12>0;i12--){if(moCPV12[i12].cpv<moCPV12[i12-1].cpv)consec12++;else break;}
+    var first12=moCPV12[0], last12=moCPV12[moCPV12.length-1];
+    var lastMoNum12=parseInt(last12.mo.split('-')[1],10);
+    var isSummerPeak=[5,6,7,8].indexOf(lastMoNum12)!==-1;
+    var out12='Trend sustainability — '+sid12+':\n\n';
+    out12+='CPV history: '+moCPV12.map(function(x){return monthLabel(x.mo)+' $'+x.cpv.toFixed(2);}).join(' → ')+'\n\n';
+    if(consec12===0){
+      out12+='Most recent month showed no improvement vs. the prior month. ';
+      out12+=last12.cpv<first12.cpv?'However, the longer-term trend is still down overall.':'CPV has not improved from its starting point.';
+    } else if(consec12===1){
+      out12+='1 month of improvement — too early to call a sustained trend. A second consecutive improving month would signal the algorithm is learning.';
+    } else if(consec12===2){
+      out12+='2 consecutive months of improvement — a positive pattern is forming. One tough month (especially a seasonal trough) could interrupt it, so watch the next month closely.';
+    } else {
+      out12+=consec12+' consecutive months of improvement — this is a sustained trend. Strong signal that the campaign has settled into its learning and the algorithm is optimizing.';
+    }
+    if(isSummerPeak&&consec12>0)out12+='\n\nNote: Part of the improvement may reflect seasonal tailwinds — summer is peak car wash season. Compare against prior winter months to confirm the underlying trajectory is genuine.';
+    out12+='\n\nOverall since launch: $'+first12.cpv.toFixed(2)+' → $'+last12.cpv.toFixed(2)+' ('+(last12.cpv<first12.cpv?'↓'*'↑')+Math.abs(((last12.cpv-first12.cpv)/first12.cpv*100)).toFixed(0)+'%)';
+    return out12;
+  }
+
   var q3Match = m.toUpperCase().match(/\b([A-Z]{2,3}\d{2,4})\b/);
   if (q3Match) {
     var qSite = q3Match[1];
@@ -2012,11 +2102,184 @@ function answer(message) {
     return out;
   }
 
-      return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
+      
+  // ── Q8: CPV TARGET BENCHMARK ─────────────────────────────────────────────
+  if ((m.includes('target') || m.includes('goal') || m.includes('aim for') || m.includes('benchmark') || m.includes('should we be') || m.includes('realistic')) &&
+      (m.includes('cpv') || m.includes('cost per visit') || m.includes('cost per store'))) {
+    var netCPV8=sumCol(filteredData,'Store Visits')>0?sumCol(filteredData,'Cost')/sumCol(filteredData,'Store Visits'):0;
+    var allMo8=unique(rawData,'Month').sort().map(function(x){return norm(x);});
+    var bestNet8={mo:null,cpv:Infinity};
+    var allMoCPV8=[];
+    allMo8.forEach(function(mo){
+      var d=rawData.filter(function(r){return norm(r['Month'])===mo;});
+      var c=sumCol(d,'Cost'),v=sumCol(d,'Store Visits');
+      if(v>0){var cpv=c/v;allMoCPV8.push({mo:mo,cpv:cpv});if(cpv<bestNet8.cpv){bestNet8.mo=mo;bestNet8.cpv=cpv;}}
+    });
+    var nowMo8=new Date().getMonth()+1;
+    var seasonal8=[5,6,7,8].indexOf(nowMo8)!==-1?'summer (favorable — CPV typically lower)':[1,2,3].indexOf(nowMo8)!==-1?'winter (challenging — CPV typically higher)':'shoulder season';
+    var out8='CPV benchmarks'+(filteredData.length<rawData.length?' (filtered view)':'')+' — '+seasonal8+':\n\n';
+    out8+='• Current avg: $'+netCPV8.toFixed(2)+'/visit\n';
+    if(bestNet8.mo)out8+='• Network all-time best: $'+bestNet8.cpv.toFixed(2)+'/visit ('+monthLabel(bestNet8.mo)+')\n';
+    out8+='• Realistic near-term target: $'+(netCPV8*0.85).toFixed(2)+'–$'+(netCPV8*0.90).toFixed(2)+'/visit (10–15% improvement)\n';
+    out8+='• Aspirational target: $'+(bestNet8.mo?(bestNet8.cpv*1.1).toFixed(2):(netCPV8*0.7).toFixed(2))+'/visit (near historical floor)\n\n';
+    if([5,6,7,8].indexOf(nowMo8)!==-1)out8+='Now is typically the most efficient period — a good time to push for lower CPV targets.';
+    else if([1,2,3].indexOf(nowMo8)!==-1)out8+='Winter CPVs run higher network-wide. Set seasonal expectations accordingly — compare against prior winters rather than summer peaks.';
+    else out8+='Shoulder season — CPV is trending toward summer efficiency.';
+    return out8;
+  }
+
+  // ── Q10: SPEND CONCENTRATION ──────────────────────────────────────────────
+  if ((m.includes('spend') || m.includes('budget')) &&
+      (m.includes('inefficient') || m.includes('wasted') || m.includes('concentrat') || m.includes('above average') || m.includes('above avg') || m.includes('underperform') || m.includes('poor perform') || m.includes('low perform'))) {
+    var netCPV10=sumCol(filteredData,'Store Visits')>0?sumCol(filteredData,'Cost')/sumCol(filteredData,'Store Visits'):0;
+    var sc10={}; // per-site totals
+    filteredData.forEach(function(r){
+      var sid=getSiteId(r['Campaign Name']||'');if(!sid)return;
+      if(!sc10[sid])sc10[sid]={cost:0,sv:0};
+      sc10[sid].cost+=(parseFloat(r['Cost'])||0);
+      sc10[sid].sv+=(parseFloat(r['Store Visits'])||0);
+    });
+    var totalCost10=sumCol(filteredData,'Cost');
+    var aboveCost10=0,aboveCount10=0;
+    Object.keys(sc10).forEach(function(sid){
+      if(sc10[sid].sv>0&&sc10[sid].cost/sc10[sid].sv>netCPV10){aboveCost10+=sc10[sid].cost;aboveCount10++;}
+    });
+    var pct10=totalCost10>0?aboveCost10/totalCost10*100:0;
+    var sinks10=Object.keys(sc10).filter(function(sid){return sc10[sid].sv>0&&sc10[sid].cost/sc10[sid].sv>netCPV10;}).sort(function(a,b){return sc10[b].cost-sc10[a].cost;}).slice(0,5);
+    var ctx10=filteredData.length<rawData.length?' (filtered view)':'';
+    var out10='Spend concentration'+ctx10+' — ad network avg $'+netCPV10.toFixed(2)+'/visit:\n\n';
+    out10+=pct10.toFixed(0)+'% of spend ($'+fmt$(aboveCost10)+' of $'+fmt$(totalCost10)+') is going to '+aboveCount10+' above-average-CPV sites.\n\n';
+    if(sinks10.length){
+      out10+='Top budget going to above-avg CPV sites:\n';
+      sinks10.forEach(function(sid){out10+='• '+sid+': $'+fmt$(sc10[sid].cost)+' spend at $'+(sc10[sid].cost/sc10[sid].sv).toFixed(2)+'/visit\n';});
+      out10+='\nConsider shifting budget toward higher-efficiency sites during peak season to lower overall CPV.';
+    }
+    return out10;
+  }
+
+  // ── Q11: ACTION PLAYBOOK FOR UNDERPERFORMERS ──────────────────────────────
+  if ((m.includes('what should') || m.includes('what can') || m.includes('how do') || m.includes('how to') || m.includes('how can')) &&
+      (m.includes('underperform') || m.includes('struggling') || m.includes('poor') || m.includes('inefficient') || m.includes('not perform') || (m.includes('bad') && m.includes('site')))) {
+    var netCPV11=sumCol(filteredData,'Store Visits')>0?sumCol(filteredData,'Cost')/sumCol(filteredData,'Store Visits'):0;
+    var out11='Playbook for underperforming sites:\n\n';
+    out11+='1. Check site maturity first\nIf the site launched less than 4 months ago, Performance Max is still in its learning phase. Hold spend steady — reducing budget resets the algorithm and extends the learning period.\n\n';
+    out11+='2. Confirm spend consistency\nFrequent budget changes confuse the algorithm. A site running $500/month consistently will almost always outperform one fluctuating between $200 and $800.\n\n';
+    out11+='3. Check campaign type coverage\nSites running both PMax and Search/Brand typically reach target CPV faster. If PMax-only, consider adding a branded Search campaign. If Search-only, add PMax.\n\n';
+    out11+='4. Apply seasonal context\nCompare the site against the network average for that same calendar month historically. A site at $4.50/visit in January may be right in line with seasonal norms.\n\n';
+    out11+='5. Limit structural changes\nAvoid changing campaign structure (new ad groups, new assets, new targeting) more than once per month. Each change can trigger a new learning phase.\n\n';
+    out11+='Current network avg: $'+netCPV11.toFixed(2)+'/visit. Sites more than 30% above this after 6+ months of consistent spend warrant deeper review with your Google rep.';
+    return out11;
+  }
+
+  // ── Q13: PMAX VS SEARCH CAMPAIGN TYPE COMPARISON ─────────────────────────
+  if ((m.includes('pmax') || m.includes('performance max')) ||
+      (m.includes('campaign type') && (m.includes('compar') || m.includes('vs') || m.includes('better') || m.includes('which') || m.includes('perform')))) {
+    var pmaxRows13=filteredData.filter(function(r){var n=(r['Campaign Name']||'').toLowerCase();return n.includes('pmax')||n.includes('performance max');});
+    var searchRows13=filteredData.filter(function(r){var n=(r['Campaign Name']||'').toLowerCase();return !n.includes('pmax')&&!n.includes('performance max')&&(n.includes('search')||n.includes('brand')||n.includes('local'));});
+    var pmaxCost13=sumCol(pmaxRows13,'Cost'),pmaxSV13=sumCol(pmaxRows13,'Store Visits');
+    var searchCost13=sumCol(searchRows13,'Cost'),searchSV13=sumCol(searchRows13,'Store Visits');
+    var pmaxCPV13=pmaxSV13>0?pmaxCost13/pmaxSV13:null;
+    var searchCPV13=searchSV13>0?searchCost13/searchSV13:null;
+    if(!pmaxRows13.length&&!searchRows13.length)return 'Could not identify campaign types in the current viet.';
+    var out13='PMax vs Search/Brand comparison'+(filteredData.length<rawData.length?' (filtered view)':'')+' :\n\n';
+    if(pmaxRows13.length){
+      out13+='Performance Max:\n';
+      out13+='• CPV: $'+(pmaxCPV13||0).toFixed(2)+'/visit\n';
+      out13+='• Spend: $'+fmt$(pmaxCost13)+' | Store visits: '+numFmt(Math.round(pmaxSV13/SV_DIVISOR))+'\n';
+      out13+='• '+unique(pmaxRows13,'Campaign Name').length+' campaigns\n\n';
+    } else { out13+='Performance Max: no campaigns in current view\n\n'; }
+    if(searchRows13.length){
+      out13+='Search/Brand:\n';
+      out13+='• CPV: $'+(searchCPV13||0).toFixed(2)+'/visit\n';
+      out13+='• Spend: $'+fmt$(searchCost13)+' | Store visits: '+numFmt(Math.round(searchSV13/SV_DIVISOR))+'\n';
+      out13+='• '+unique(searchRows13,'Campaign Name').length+' campaigns\n\n';
+    } else { out13+='Search/Brand: no campaigns in current view\n\n'; }
+    if(pmaxCPV13&&searchCPV13){
+      var winner13=pmaxCPV13<searchCPV13?'Performance Max':'Search/Brand';
+      var diff13=Math.abs(pmaxCPV13-searchCPV13);
+      out13+=winner13+' is more cost-efficient by $'+diff13.toFixed(2)+'/visit in this dataset.\n';
+      out13+='Note: PMax and Search serve different intents — PMax drives broad local awareness while Search/Brand captures high-intent queries. Running both together typically outperforms either alone.';
+    }
+    return out13;
+  }
+
+  // ── Q14: ALL-TIME BEST CPV ────────────────────────────────────────────────
+  if ((m.includes('best') || m.includes('lowest') || m.includes('record') || m.includes('all time') || m.includes('all-time') || m.includes('ever achieved') || m.includes('ever seen') || m.includes('ever been')) &&
+      (m.includes('cpv') || m.includes('cost per visit') || m.includes('cost per store'))) {
+    var allMo14=unique(rawData,'Month').sort().map(function(x){return norm(x);});
+    var bestNet14={mo:null,cpv:Infinity};
+    var allMoCPV14=[];
+    allMo14.forEach(function(mo){
+      var d=rawData.filter(function(r){return norm(r['Month'])===mo;});
+      var c=sumCol(d,'Cost'),v=sumCol(d,'Store Visits');
+      if(v>0){var cpv=c/v;allMoCPV14.push({mo:mo,cpv:cpv});if(cpv<bestNet14.cpv){bestNet14.mo=mo;bestNet14.cpv=cpv;}}
+    });
+    var accts14=unique(rawData,'Account Name');
+    var bestByRegion14=accts14.map(function(a){
+      var rBest={mo:null,cpv:Infinity};
+      allMo14.forEach(function(mo){
+        var d=rawData.filter(function(r){return norm(r['Month'])===mo&&r['Account Name']===a;});
+        var c=sumCol(d,'Cost'),v=sumCol(d,'Store Visits');
+        if(v>0){var cpv=c/v;if(cpv<rBest.cpv){rBest.mo=mo;rBest.cpv=cpv;}}
+      });
+      return {region:shortName(a),cpv:rBest.cpv<Infinity?rBest.cpv:null,mo:rBest.mo};
+    }).filter(function(x){return x.cpv!==null;}).sort(function(a,b){return a.cpv-b.cpv;});
+    var curCPV14=sumCol(filteredData,'Store Visits')>0?sumCol(filteredData,'Cost')/sumCol(filteredData,'Store Visits'):0;
+    var out14='All-time best CPV records:\n\n';
+    if(bestNet14.mo){
+      out14+='Network all-time best: $'+bestNet14.cpv.toFixed(2)+'/visit ('+monthLabel(bestNet14.mo)+')\n';
+      out14+='Current avg: $'+curCPV14.toFixed(2)+'/visit ('+((curCPV14-bestNet14.cpv)/bestNet14.cpv*100).toFixed(0)+'% above all-time best)\n\n';
+    }
+    var top3Mo14=allMoCPV14.sort(function(a,b){return a.cpv-b.cpv;}).slice(0,3);
+    if(top3Mo14.length){
+      out14+='Best months on record:\n';
+      top3Mo14.forEach(function(x,i){out14+=(i+1)+'. '+monthLabel(x.mo)+' — $'+x.cpv.toFixed(2)+'/visit\n';});
+      out14+='\n';
+    }
+    if(bestByRegion14.length){
+      out14+='Regional bests:\n';
+      bestByRegion14.forEach(function(r){out14+='• '+r.region+': $'+r.cpv.toFixed(2)+'/visit ('+monthLabel(r.mo)+')\n';});
+      out14+='\nThese represent the achievable floor for each region — useful as planning targets.';
+    }
+    return out14;
+  }
+
+  // ── Q15: CLICK-TO-STORE-VISIT CONVERSION RATE ─────────────────────────────
+  if ((m.includes('click') && (m.includes('visit') || m.includes('convers') || m.includes('rate') || m.includes('store') || m.includes('how many'))) ||
+      m.includes('conversion rate') || (m.includes('ctr') && m.includes('visit'))) {
+    var clicks15=sumCol(filteredData,'Clicks');
+    if(!clicks15)return 'No click data available in the current view.';
+    var svRaw15=sumCol(filteredData,'Store Visits');
+    var rate15=clicks15>0?svRaw15/clicks15*100:0;
+    var allMo15=unique(filteredData,'Month').sort().map(function(x){return norm(x);});
+    var moRates15=allMo15.map(function(mo){
+      var d=filteredData.filter(function(r){return norm(r['Month'])===mo;});
+      var c15=sumCol(d,'Clicks'),v15=sumCol(d,'Store Visits');
+      return {mo:mo,rate:c15>0?v15/c15*100:null};
+    }).filter(function(x){return x.rate!==null;});
+    var trendDesc15='';
+    if(moRates15.length>=2){
+      var rFirst15=moRates15[0].rate,rLast15=moRates15[moRates15.length-1].rate;
+      trendDesc15=rLast15>rFirst15?' (improving ↑)':rLast15<rFirst15?' (declining ↓)':' (stable)';
+    }
+    var out15='Click-to-store-visit conversion rate'+(filteredData.length<rawData.length?' (filtered view)':'')+' :\n\n';
+    out15+='• Total clicks: '+numFmt(clicks15)+'\n';
+    out15+='• Store visits (raw): '+numFmt(svRaw15)+'\n';
+    out15+='• Conversion rate: '+rate15.toFixed(1)+'% of clicks lead to a store visit'+trendDesc15+'\n\n';
+    if(moRates15.length>1){
+      out15+='Monthly trend:\n';
+      moRates15.forEach(function(x){out15+='• '+monthLabel(x.mo)+': '+x.rate.toFixed(1)+'%\n';});
+      out15+='\n';
+    }
+    out15+='Context: A higher rate means ads are reaching people already nearby or ready to visit. Rates vary seasonally — summer typically shows stronger conversion. Lower rates are normal for awareness-focused PMax campaigns reaching a broader audience.';
+    return out15;
+  }
+
+  return "I can answer questions about store visits, spend, cost per visit, account comparisons, monthly trends, clicks, and CTR. Try \"Which account is most efficient?\" or \"What's the cost per store visit?\"";
 }
 
 /* ================================================================
-   SUMMARY GENERATOR
+   SUMMARY MENERATOR
 ================================================================ */
 function generateSummary() {
   if (!filteredData.length) { alert('No data loaded yet.'); return; }
