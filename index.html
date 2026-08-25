@@ -398,7 +398,7 @@
     th {
       text-align: left;
       padding: 9px 12px;
-      background: var(--gray`;
+      background: var(--gray);
       font-weight: 700;
       font-size: 10px;
       text-transform: uppercase;
@@ -486,7 +486,7 @@
     .msg.user {
       background: var(--red);
       color: white;
-       align-self: flex-end;
+      align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
 
@@ -793,7 +793,7 @@
         <span class="suggestion-chip" onclick="askChip(this)">Give me a full summary</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites need attention?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites have improved recently?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">When should we add or leduce spend?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">When should we add or reduce spend?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Will CPV come down over the next 3 months?</span>
         <span class="suggestion-chip" onclick="askChip(this)">How do regions compare?</span>
         <span class="suggestion-chip" onclick="askChip(this)">How long does a new site take to ramp up?</span>
@@ -855,9 +855,9 @@ var allCampaigns = []; // populated in initDashboard
 /* RMC → site ID lookup (sourced from RMC Assignments reference) */
 var RMC_SITES = {
   'Erik Durham':    ['AL374','AR129','AR143','AR18','AR375','AR91','AZ217','AZ452','AZ453','FL08','FL105','FL138','FL183','FL193','FL194','FL20','FL207','FL21','FL216','FL28','FL31','FL332','FL333','FL340','FL344','FL346','FL347','FL350','FL356','FL380','FL383','FL409','FL413','FL415','FL437','FL57','FL74','FR357','GA212','GA26','GA419','GA42','GA61','GA75','IN403','LA114','LA118','LA144','LA27','LA92','MI166','MI170','MI208','MI229','MS349','NC130','NC205','NC477','NM113','OK117','OK121','OK157','OK167','OK168','OK209','OK330','OK342','OK393','ON203','SC126','SC479','TN180','TN182','TN192','TN29','TN89','TX111','TX154','TX160','TX17','TX175','TX190','TX215','TX34','TX358','TX359','TX364','TX412','TX429','TX451','TX480','TX72','UT426'],
-  'Emily Lenau':    ['DE112','DE66','IA150','IA36','IA377','IA69','IA81','IA82','IA87','IA94','IL125','IL164','IL188','IL348','IL54','IL99','IN25','MI124','MI47','MI159','MI176','MI185','MI210','MI23','MI341','MI345','MI355','MI386','MI443','MI470','MI48','MI481','MN108','MN116','MN173','MN362','MN378','MN413','MN408','MN438','MN83','MN88','MO156','MO218','MO58','MO77','ND132','ND354','ND360','ND361','OH134','OH433','OH449','PA123','PA195','PA343','PA372','PA477','SD165','VA115','VA12','VA220','VA423','VA76','WI141','WI184','WI334','WI382','WI418','WI454','WI70','WI71','WY201'],
-  'Joel Fullmer':   ['MD213','MD366','MD369','MD433','NC45','NC62','NE10','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','OH471','OH472','OH473','OH474','OH475','OK203','OK442','OK476','PA338','PA368','PA463','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX517','TX428','TX431','TX432','TX445','TX463','UT413','VA162'],
-  'Matt Witkowski':  ['AK401','AK402','AR67','CA09','CA102','CA140','CA149','CA178','CO30','CO338','CO35','CO394','IA163','ID158','ID169','ID416','ID53','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','KY422','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV478','OK84','OK90','OK336','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110'],
+  'Emily Lenau':    ['DE112','DE66','IA150','IA36','IA377','IA69','IA81','IA82','IA87','IA94','IL125','IL164','IL188','IL348','IL54','IL99','IN25','MI124','MI147','MI159','MI176','MI185','MI210','MI23','MI341','MI345','MI355','MI386','MI443','MI470','MI48','MI481','MN108','MN116','MN173','MN362','MN378','MN407','MN408','MN438','MN83','MN88','MO156','MO218','MO58','MO77','ND132','ND354','ND360','ND361','OH134','OH433','OH449','PA123','PA135','PA343','PA372','PA467','SD165','VA115','VA12','VA220','VA424','VA76','WI141','WI184','WI334','WI382','WI418','WI454','WI70','WI71','WY201'],
+  'Joel Fullmer':   ['MD213','MD366','MD369','MD435','NC45','NC62','NE10','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','OH471','OH472','OH473','OH474','OH475','OK204','OK442','OK476','PA337','PA368','PA464','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX417','TX428','TX431','TX432','TX445','TX463','UT414','VA162'],
+  'Matt Witkowski':  ['AK401','AK402','AR67','CA09','CA102','CA136','CA140','CA149','CA178','CO30','CO338','CO35','CO394','IA163','ID158','ID169','ID416','ID53','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','KY422','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV478','OK84','OK90','OK336','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110'],
   'Megan Meerman':  ['FL331','MI03','MI11','MI214','MI223','MI224','MI32','MI37','MI376','MI381','MI391','MI421','MI423','MI425','OH40']
 };
 
@@ -905,12 +905,15 @@ var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRtZ4yhTQ1G
 
 function autoLoadSheet() {
   document.getElementById('dataStatus').textContent = 'Refreshing…';
-  fetch(SHEET_CSV_URL)
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 8000);
+  fetch(SHEET_CSV_URL, { signal: controller.signal })
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.text();
     })
     .then(function(csvText) {
+      clearTimeout(timeoutId);
       var result = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
@@ -1392,7 +1395,7 @@ function answer(message) {
       (m.includes('zip') && m.includes('target')) ||
       (m.includes('test') && (m.includes('target cpa') || m.includes('current') || m.includes('active') || m.includes('running') || m.includes('what')))) {
     return 'Active tests as of July 2026:\n\n' +
-      '1. Target CPA ($2.10) — since April 22. Applied to underperforming PMax sites. Currently active: CO35, IL125, MI147, MI214, MI421, MI425, MN108, MN378, IA34, FLC47, TX417, TX359, OK90, TX34. Improves efficiency but risks underspending; best as a short-term intervention, not a permanent setting.\n\n' +
+      '1. Target CPA ($2.10) — since April 22. Applied to underperforming PMax sites. Currently active: CO35, IL125, MI147, MI214, MI421, MI425, MN108, MN378, IA94, FL347, TX417, TX359, OK90, TX34. Improves efficiency but risks underspending; best as a short-term intervention, not a permanent setting.\n\n' +
       '2. First Wash Free asset group — since June 1. Adds an FWF asset group alongside the standard store visit group (not replacing it). Results through July 6: $1.95 CPA for additive group vs. $2.73 for replacement group and $2.67 for control. Recommendation: add alongside, do not replace.\n\n' +
       '3. ZIP Code vs. Radius targeting — since June 15. Testing zip-code targeting against standard radius-based geo. Site IDs not yet documented.\n\n' +
       '4. FMF vs. FWF vs. Site Visit CPA comparison — early planning stage, July 2026. Parallel Meta SMS test in scope.\n\n' +
@@ -1428,7 +1431,7 @@ function answer(message) {
       '• Performance Max — bid: Maximize Conversions, goal: Store Visits. Core type for all locations.\n' +
       '• Search — bid: Maximize Conversions, goal: FMF Claims (First Month Free). Store Visits tracked as secondary.\n' +
       '• Video — goal: Store Visits. Seasonal; not running year-round.\n' +
-      '• Display — goals: �Submit Lead Form, Page View.\n' +
+      '• Display — goals: Submit Lead Form, Page View.\n' +
       '• Demand Gen — goal: Page Views.';
   }
 
@@ -1460,10 +1463,10 @@ function answer(message) {
   if (m.includes('rmc') || m.includes('regional marketing') || m.includes('coordinator') ||
       m.includes('who manages') || m.includes('who handles') || m.includes('who is responsible')) {
     if (m.includes('erik') || m.includes('durham')) {
-      return 'Erik Durham manages Southeast and Southwest locations plus select others: AL374, AX L�17, 452, 453), FL (08, 105, 138, 183, 193, 194, 20, 207, 21, 216, 28, 31, 332, 333, 340, 344, 346, 347, 350, 356, 380, 383, 409, 413, 415, 437, 57, 74), GA (212, 26, 419, 42, 61, 75), IN403, LA (114, 118, 144, 27, 92), MI (166, 170, 208, 229), MS349, NC (130, 205, 477), NM113, OK (117, 121, 157, 167, 168, 209, 330, 342, 393), SC (126, 479), TN (180, 182, 192, 29, 89), TX (111, 154, 160, 17, 175, 190, 215, 34, 358, 359, 364, 412, 429, 451, 480, 72), UT426. Note: FR357 and ON203 are also assigned but are international sites.';
+      return 'Erik Durham manages Southeast and Southwest locations plus select others: AL374, AZ (217, 452, 453), FL (08, 105, 138, 183, 193, 194, 20, 207, 21, 216, 28, 31, 332, 333, 340, 344, 346, 347, 350, 356, 380, 383, 409, 413, 415, 437, 57, 74), GA (212, 26, 419, 42, 61, 75), IN403, LA (114, 118, 144, 27, 92), MI (166, 170, 208, 229), MS349, NC (130, 205, 477), NM113, OK (117, 121, 157, 167, 168, 209, 330, 342, 393), SC (126, 479), TN (180, 182, 192, 29, 89), TX (111, 154, 160, 17, 175, 190, 215, 34, 358, 359, 364, 412, 429, 451, 480, 72), UT426. Note: FR357 and ON203 are also assigned but are international sites.';
     }
     if (m.includes('emily') || m.includes('lenau')) {
-      return 'Emily Lenau manages Midwest locations: DE (112, 66), IA (150, 36, 377, 69, 81, 82, 87, 94), IL (125, 164, 188, 348, 54, 99), IN25, MI x124, 147, 159, 176, 185, 210, 23, 341, 345, 355, 386, 443, 470, 48, 481), MN (108, 116, 173, 362, 378, 407, 408, 438, 83, 88), MO (156, 218, 58, 77), ND (132, 354, 360, 361), OH (134, 433, 449), PA (123, 135, 343, 372, 467), SD165, VA (115, 12, 220, 424, 76), WI (141, 184, 334, 382, 418, 454, 70, 71), WY201.';
+      return 'Emily Lenau manages Midwest locations: DE (112, 66), IA (150, 36, 377, 69, 81, 82, 87, 94), IL (125, 164, 188, 348, 54, 99), IN25, MI (124, 147, 159, 176, 185, 210, 23, 341, 345, 355, 386, 443, 470, 48, 481), MN (108, 116, 173, 362, 378, 407, 408, 438, 83, 88), MO (156, 218, 58, 77), ND (132, 354, 360, 361), OH (134, 433, 449), PA (123, 135, 343, 372, 467), SD165, VA (115, 12, 220, 424, 76), WI (141, 184, 334, 382, 418, 454, 70, 71), WY201.';
     }
     if (m.includes('joel') || m.includes('fullmer')) {
       return 'Joel Fullmer manages: MD (213, 366, 369, 435), NC (45, 62), NE (10, 379, 39, 441, 444, 458, 461, 465, 79), OH (471, 472, 473, 474, 475), OK (204, 442, 476), PA (337, 368, 464, 93), SC (339, 371, 411, 430, 440, 63), TX (07, 221, 370, 399, 417, 428, 431, 432, 445, 463), UT414, VA162.';
@@ -1500,7 +1503,7 @@ function answer(message) {
   // Budget per location
   if (m.includes('$250') ||
       (m.includes('budget') && (m.includes('per location') || m.includes('each location') || m.includes('standard') || m.includes('baseline') || m.includes('location')))) {
-    return 'Standard monthly budget: $250 per participating location, funding one Performance Max campaign. Franchise partners may invest additional spend above this baseline (invoiced monthly+. At the standard rate across ~266 locations, the baseline network budget is approximately $66,500/month. All accounts use unlimited account-level spending — control is at the campaign level. Reconciliation is tracked in an external spreadsheet.';
+    return 'Standard monthly budget: $250 per participating location, funding one Performance Max campaign. Franchise partners may invest additional spend above this baseline (invoiced monthly). At the standard rate across ~266 locations, the baseline network budget is approximately $66,500/month. All accounts use unlimited account-level spending — control is at the campaign level. Reconciliation is tracked in an external spreadsheet.';
   }
 
   // Campaign naming convention
@@ -1567,7 +1570,7 @@ function answer(message) {
     if (totalSV === 0)
       return 'No store visit data found in the current filter. Check that your CSV contains the "Store Visits" column with non-zero values.';
     var svByMonth = groupSum(filteredData, 'Month', 'Store Visits');
-    var bestSVMonth = Object.keys(svByMonth).sort(function(a,b){ return swByMonth[b]-svByMonth[a]; })[0];
+    var bestSVMonth = Object.keys(svByMonth).sort(function(a,b){ return svByMonth[b]-svByMonth[a]; })[0];
     return numFmt(Math.round(totalSV)) + ' total store visits. Best month: ' +
       monthLabel(bestSVMonth) + ' (' + numFmt(Math.round(svByMonth[bestSVMonth])) + ' visits).';
   }
@@ -1745,7 +1748,7 @@ function answer(message) {
     var q1Worst = q1Mos.slice(-Math.min(3, q1Mos.length)).reverse();
     var q1Ctx   = ctxRMC !== 'all' ? ctxRMC : (ctxAcc !== 'all' ? shortName(ctxAcc)+' Region' : 'full network');
     return 'Seasonal spend timing — ' + q1Ctx + ' (historical avg CPV by month):\n\n' +
-      'Add spend — inst efficient months:\n' +
+      'Add spend — most efficient months:\n' +
       q1Best.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
       '\n\nConsider reducing or holding spend — least efficient months:\n' +
       q1Worst.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
@@ -1875,7 +1878,7 @@ function answer(message) {
     if(sMos9.length<4)out9+='→ New site — Performance Max is still in its learning phase. Hold spend steady and avoid bid changes.\n';
     if(!hasPMax9)out9+='→ No PMax campaign detected. Consider adding Performance Max alongside Search.\n';
     if(peerCPV9&&sCPV9&&sCPV9>peerCPV9*1.2)out9+='→ CPV is 20%+ above peers at same maturity — campaign structure or spend level may need review.\n';
-    if(trendDir9==='rising')out9+='→ CPV trending up recently — possible increased competition or a reduced impression share.\n';
+    if(trendDir9==='rising')out9+='→ CPV trending up recently — possible increased competition or reduced impression share.\n';
     if(trendDir9==='improving')out9+='→ CPV trending down — current strategy is working. Maintain consistent spend.\n';
     return out9;
   }
@@ -1911,7 +1914,7 @@ function answer(message) {
       out12+=consec12+' consecutive months of improvement — this is a sustained trend. Strong signal that the campaign has settled into its learning and the algorithm is optimizing.';
     }
     if(isSummerPeak&&consec12>0)out12+='\n\nNote: Part of the improvement may reflect seasonal tailwinds — summer is peak car wash season. Compare against prior winter months to confirm the underlying trajectory is genuine.';
-    out12+='\n\nOverall since launch: $'+first12.cpv.toFixed(2)+' → $'+last12.cpv.toFixed(2)+' ('+(last12.cpv<first12.cpv?'↓'*'↑')+Math.abs(((last12.cpv-first12.cpv)/first12.cpv*100)).toFixed(0)+'%)';
+    out12+='\n\nOverall since launch: $'+first12.cpv.toFixed(2)+' → $'+last12.cpv.toFixed(2)+' ('+(last12.cpv<first12.cpv?'↓':'↑')+Math.abs(((last12.cpv-first12.cpv)/first12.cpv*100)).toFixed(0)+'%)';
     return out12;
   }
 
@@ -2147,7 +2150,7 @@ function answer(message) {
     var pct10=totalCost10>0?aboveCost10/totalCost10*100:0;
     var sinks10=Object.keys(sc10).filter(function(sid){return sc10[sid].sv>0&&sc10[sid].cost/sc10[sid].sv>netCPV10;}).sort(function(a,b){return sc10[b].cost-sc10[a].cost;}).slice(0,5);
     var ctx10=filteredData.length<rawData.length?' (filtered view)':'';
-    var out10='Spend concentration'+ctx10+' — ad network avg $'+netCPV10.toFixed(2)+'/visit:\n\n';
+    var out10='Spend concentration'+ctx10+' — network avg $'+netCPV10.toFixed(2)+'/visit:\n\n';
     out10+=pct10.toFixed(0)+'% of spend ($'+fmt$(aboveCost10)+' of $'+fmt$(totalCost10)+') is going to '+aboveCount10+' above-average-CPV sites.\n\n';
     if(sinks10.length){
       out10+='Top budget going to above-avg CPV sites:\n';
@@ -2180,7 +2183,7 @@ function answer(message) {
     var searchCost13=sumCol(searchRows13,'Cost'),searchSV13=sumCol(searchRows13,'Store Visits');
     var pmaxCPV13=pmaxSV13>0?pmaxCost13/pmaxSV13:null;
     var searchCPV13=searchSV13>0?searchCost13/searchSV13:null;
-    if(!pmaxRows13.length&&!searchRows13.length)return 'Could not identify campaign types in the current viet.';
+    if(!pmaxRows13.length&&!searchRows13.length)return 'Could not identify campaign types in the current view.';
     var out13='PMax vs Search/Brand comparison'+(filteredData.length<rawData.length?' (filtered view)':'')+' :\n\n';
     if(pmaxRows13.length){
       out13+='Performance Max:\n';
@@ -2279,7 +2282,7 @@ function answer(message) {
 }
 
 /* ================================================================
-   SUMMARY MENERATOR
+   SUMMARY GENERATOR
 ================================================================ */
 function generateSummary() {
   if (!filteredData.length) { alert('No data loaded yet.'); return; }
