@@ -713,6 +713,18 @@
       <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
 
+    <!-- SUMMARY CARD -->
+    <div class="summary-card" id="summaryCard" style="display:none">
+      <div class="summary-header">
+        <div>
+          <div class="summary-label">✦ Performance Summary</div>
+          <div class="summary-context" id="summaryContext"></div>
+        </div>
+        <button class="summary-dismiss" onclick="document.getElementById('summaryCard').style.display='none'" title="Dismiss">&times;</button>
+      </div>
+      <div class="summary-body" id="summaryBody"></div>
+    </div>
+
     <!-- KPI CARDS -->
     <div class="kpi-grid">
       <div class="kpi-card dark">
@@ -764,18 +776,6 @@
       </div>
     </div>
 
-
-    <!-- SUMMARY CARD -->
-    <div class="summary-card" id="summaryCard" style="display:none">
-      <div class="summary-header">
-        <div>
-          <div class="summary-label">✦ Performance Summary</div>
-          <div class="summary-context" id="summaryContext"></div>
-        </div>
-        <button class="summary-dismiss" onclick="document.getElementById('summaryCard').style.display='none'" title="Dismiss">&times;</button>
-      </div>
-      <div class="summary-body" id="summaryBody"></div>
-    </div>
 
     <!-- CHAT -->
     <div class="chat-card" style="margin-bottom:24px;">
@@ -1359,6 +1359,38 @@ function addMsg(text, role) {
   box.scrollTop = box.scrollHeight;
 }
 
+/* Builds an explicit scope label from the active filters, e.g.
+   "Central Region · Mar–Aug 2026 · 3 campaigns". Pass {ignoreMonths:true}
+   for handlers that intentionally use full history (seasonality). */
+function scopeLabel(opts) {
+  opts = opts || {};
+  var rmcEl = document.getElementById('filterRMC');
+  var accEl = document.getElementById('filterAccount');
+  var fromEl= document.getElementById('filterFrom');
+  var toEl  = document.getElementById('filterTo');
+  var campEl= document.getElementById('filterCampaign');
+  var rmc = rmcEl ? rmcEl.value : 'all';
+  var acc = accEl ? accEl.value : 'all';
+  var parts = [];
+  if (rmc !== 'all') parts.push(rmc);
+  else if (acc !== 'all') parts.push(shortName(acc) + ' Region');
+  else parts.push('All regions');
+  if (opts.ignoreMonths) {
+    parts.push('full history');
+  } else {
+    var f = fromEl && fromEl.value ? norm(fromEl.value) : '';
+    var t = toEl   && toEl.value   ? norm(toEl.value)   : '';
+    if (f && t) parts.push(f === t ? monthLabel(f) : monthLabel(f) + '–' + monthLabel(t));
+  }
+  var nSel = 0;
+  if (campEl && campEl.selectedOptions) nSel = campEl.selectedOptions.length;
+  else if (campEl && campEl.options) {
+    for (var i = 0; i < campEl.options.length; i++) if (campEl.options[i].selected) nSel++;
+  }
+  if (nSel > 0) parts.push(nSel + ' campaign' + (nSel > 1 ? 's' : ''));
+  return parts.join(' · ');
+}
+
 function answer(message) {
   var m = message.toLowerCase();
 
@@ -1751,7 +1783,7 @@ function answer(message) {
     q1Mos.sort(function(a,b){ return a.cpv - b.cpv; });
     var q1Best  = q1Mos.slice(0, Math.min(3, q1Mos.length));
     var q1Worst = q1Mos.slice(-Math.min(3, q1Mos.length)).reverse();
-    var q1Ctx   = ctxRMC !== 'all' ? ctxRMC : (ctxAcc !== 'all' ? shortName(ctxAcc)+' Region' : 'full network');
+    var q1Ctx   = scopeLabel({ ignoreMonths: true });
     return 'Seasonal spend timing — ' + q1Ctx + ' (historical avg CPV by month):\n\n' +
       'Add spend — most efficient months:\n' +
       q1Best.map(function(d){ return '• ' + d.name + ': $' + d.cpv.toFixed(2) + '/visit avg'; }).join('\n') +
@@ -1830,7 +1862,7 @@ function answer(message) {
       else if (q2AvgNext > q2NowCPV*1.05) q2Verdict = 'Seasonal patterns suggest CPV may remain elevated or increase over the next 3 months. Maintaining consistent spend is reasonable for sustaining market presence and algorithm stability, but meaningful efficiency improvement from seasonality alone is unlikely in this window. Expect CPV relief in the months that follow.';
       else q2Verdict = 'Seasonally, the next 3 months look similar to the current period. With consistent spend, the algorithm will continue accumulating conversion data which typically translates to gradual efficiency gains — but the improvement will be incremental rather than a sudden drop.';
     }
-    var q2Ctx = q2RMC !== 'all' ? q2RMC : (q2Acc !== 'all' ? shortName(q2Acc)+' Region' : 'current view');
+    var q2Ctx = scopeLabel();
     return 'CPV outlook — ' + q2Ctx + ':\n\n' +
       'Current trend: ' + q2Trend + (q2NowCPV ? ' (latest: $' + q2NowCPV.toFixed(2) + '/visit)' : '') + '\n\n' +
       'Next 3 months — historical seasonal avg:\n' + q2NextLines.join('\n') +
@@ -2011,7 +2043,7 @@ function answer(message) {
     var phBelow = phSites.filter(function(s){ return phCost[s]/phSV[s] <= phNetCPV; });
     var phTop = phSites.slice(0, Math.min(5, phSites.length));
     var phBot = phSites.slice(-Math.min(5, phSites.length)).reverse();
-    var phCtx = (function(){ var e=document.getElementById('filterRMC'), a=document.getElementById('filterAccount'); var r=e?e.value:'all', ac=a?a.value:'all'; return r!=='all'?r:ac!=='all'?shortName(ac)+' Region':'current view'; })();
+    var phCtx = scopeLabel();
     // Intent: worst-only, best-only, or both
     var phWantWorst = m.includes('attention') || m.includes('worst') || m.includes('bottom') || m.includes('underperform') || m.includes('struggling') || m.includes('review') || m.includes('below') || m.includes('problem');
     var phWantBest  = m.includes('best') || m.includes('top') || m.includes('most efficient') || m.includes('above');
