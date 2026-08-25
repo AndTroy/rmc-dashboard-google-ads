@@ -793,17 +793,13 @@
         <span class="suggestion-chip" onclick="askChip(this)">Give me a full summary</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites need attention?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Which sites have improved recently?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">When should we add or reduce spend?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">Will CPV come down over the next 3 months?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">How do regions compare?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What times of year are the most and least efficient?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What is the outlook for Cost per Store Visit over the next 3 months?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">How do the regions compare?</span>
         <span class="suggestion-chip" onclick="askChip(this)">How long does a new site take to ramp up?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What are the active tests?</span>
         <span class="suggestion-chip" onclick="askChip(this)">Why are visits low in winter?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What CPV should we be targeting?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">How do PMax and Search campaigns compare?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What's our best CPV on record?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What's our click-to-visit conversion rate?</span>
-        <span class="suggestion-chip" onclick="askChip(this)">What should we do about underperforming sites?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What Cost per Store Visit should we be targeting?</span>
+        <span class="suggestion-chip" onclick="askChip(this)">What's our best Cost per Store Visit on record?</span>
       </div>
       <div class="chat-input-row">
         <input type="text" class="chat-input" id="chatInput"
@@ -1371,10 +1367,11 @@ function answer(message) {
   // ═══════════════════════════════════════════════════════════════
 
   // Seasonality
-  if (m.includes('season') || m.includes('time of year') ||
+  if (!((m.includes('time of year') || m.includes('times of year') || m.includes('seasonally')) && (m.includes('efficien') || m.includes('cpv') || m.includes('cost per'))) &&
+     (m.includes('season') || m.includes('time of year') ||
       (m.includes('why') && (m.includes('low') || m.includes('slow') || m.includes('down') || m.includes('high') || m.includes('peak'))) ||
       m.includes('january') || m.includes('november') || m.includes('spring') ||
-      m.includes('winter') || m.includes('pollen') || m.includes('pattern')) {
+      m.includes('winter') || m.includes('pollen') || m.includes('pattern'))) {
     return 'Wash volume follows a consistent seasonal pattern across the network:\n' +
       '• March and May: ~10-12% above the annual monthly average (post-winter grime + pollen season)\n' +
       '• April and June: ~5% above average\n' +
@@ -1436,9 +1433,10 @@ function answer(message) {
   }
 
   // Conversion / FMF definitions
-  if (m.includes('fmf') || m.includes('first month free') ||
+  if (!(m.includes('outlook') || m.includes('forecast') || m.includes('next 3 month') || m.includes('next three month')) &&
+     (m.includes('fmf') || m.includes('first month free') ||
       (m.includes('what is') && !m.includes('our') && (m.includes('store visit') || m.includes('conversion'))) ||
-      (m.includes('conversion') && (m.includes('mean') || m.includes('definition') || m.includes('count as') || m.includes('type') || m.includes('kind')))) {
+      (m.includes('conversion') && (m.includes('mean') || m.includes('definition') || m.includes('count as') || m.includes('type') || m.includes('kind'))))) {
     return 'Conversion definitions by campaign type:\n' +
       '• Performance Max: Store Visits — a physical visit to a wash location within the attribution window\n' +
       '• Search: FMF Claims primary — customer completes a First Month Free membership sign-up. Store Visits tracked as secondary.\n' +
@@ -1558,7 +1556,10 @@ function answer(message) {
   }
 
   // Cost per visit
-  if (m.includes('cost per') || (m.includes('cost') && m.includes('visit'))) {
+  if ((m.includes('cost per') || (m.includes('cost') && m.includes('visit'))) &&
+      !(m.includes('target') || m.includes('goal') || m.includes('aim for') || m.includes('benchmark') || m.includes('should we be') || m.includes('realistic')) &&
+      !(m.includes('best') || m.includes('lowest') || m.includes('record') || m.includes('all time') || m.includes('all-time') || m.includes('ever')) &&
+      !(m.includes('outlook') || m.includes('forecast') || m.includes('next 3 month') || m.includes('next three month'))) {
     if (cpv > 0)
       return 'Cost per store visit: $' + cpv.toFixed(2) +
         ' ($' + fmt$(totalCost) + ' ÷ ' + numFmt(Math.round(totalSV)) + ' visits).';
@@ -1566,7 +1567,9 @@ function answer(message) {
   }
 
   // Store visits total
-  if (m.includes('store visit') || (m.includes('visit') && !m.includes('cost'))) {
+  if ((m.includes('store visit') || (m.includes('visit') && !m.includes('cost'))) &&
+      !(m.includes('cost per') || m.includes('cpv')) &&
+      !(m.includes('outlook') || m.includes('forecast') || m.includes('next 3 month') || m.includes('next three month'))) {
     if (totalSV === 0)
       return 'No store visit data found in the current filter. Check that your CSV contains the "Store Visits" column with non-zero values.';
     var svByMonth = groupSum(filteredData, 'Month', 'Store Visits');
@@ -1585,8 +1588,9 @@ function answer(message) {
   }
 
   // Most efficient account
-  if (m.includes('efficient') || m.includes('best value') ||
-      (m.includes('lowest') && m.includes('cost'))) {
+  if ((m.includes('efficient') || m.includes('best value') ||
+      (m.includes('lowest') && m.includes('cost'))) &&
+      !(m.includes('time of year') || m.includes('times of year') || m.includes('seasonally') || m.includes('month of the year'))) {
     var costByAcc3 = groupSum(filteredData, 'Account Name', 'Cost');
     var svByAcc3   = groupSum(filteredData, 'Account Name', 'Store Visits');
     var eff = Object.keys(costByAcc3)
@@ -1716,7 +1720,8 @@ function answer(message) {
   if ((m.includes('when') && (m.includes('add') || m.includes('increase') || m.includes('reduce') || m.includes('cut') || m.includes('pull back')) && (m.includes('spend') || m.includes('budget') || m.includes('invest'))) ||
       (m.includes('best time') && (m.includes('spend') || m.includes('invest'))) ||
       (m.includes('spend timing')) ||
-      (m.includes('when should we') && (m.includes('spend') || m.includes('invest')))) {
+      (m.includes('when should we') && (m.includes('spend') || m.includes('invest'))) ||
+      ((m.includes('time of year') || m.includes('times of year') || m.includes('month of the year') || m.includes('seasonally')) && (m.includes('efficien') || m.includes('least') || m.includes('most') || m.includes('best') || m.includes('worst') || m.includes('cpv') || m.includes('cost')))) {
     // Build calendar-month CPV from all rawData in the current filter context
     var rmcCtxEl = document.getElementById('filterRMC');
     var accCtxEl = document.getElementById('filterAccount');
@@ -1758,6 +1763,7 @@ function answer(message) {
 
   // ── Q2: FORWARD CPV OUTLOOK — will CPV come down with consistent spend ───
   if (m.includes('foresee') || m.includes('forecast') ||
+      (m.includes('outlook') && (m.includes('cost') || m.includes('cpv') || m.includes('visit'))) ||
       (m.includes('come down') && (m.includes('cost') || m.includes('cpv') || m.includes('visit'))) ||
       (m.includes('will') && (m.includes('improve') || m.includes('come down') || m.includes('get better')) && (m.includes('cost') || m.includes('cpv') || m.includes('efficiency'))) ||
       m.includes('consistent spend') || m.includes('keeping spend') || m.includes('sustained spend') ||
@@ -2006,10 +2012,25 @@ function answer(message) {
     var phTop = phSites.slice(0, Math.min(5, phSites.length));
     var phBot = phSites.slice(-Math.min(5, phSites.length)).reverse();
     var phCtx = (function(){ var e=document.getElementById('filterRMC'), a=document.getElementById('filterAccount'); var r=e?e.value:'all', ac=a?a.value:'all'; return r!=='all'?r:ac!=='all'?shortName(ac)+' Region':'current view'; })();
+    // Intent: worst-only, best-only, or both
+    var phWantWorst = m.includes('attention') || m.includes('worst') || m.includes('bottom') || m.includes('underperform') || m.includes('struggling') || m.includes('review') || m.includes('below') || m.includes('problem');
+    var phWantBest  = m.includes('best') || m.includes('top') || m.includes('most efficient') || m.includes('above');
+    var phMode = (phWantWorst && !phWantBest) ? 'worst' : (phWantBest && !phWantWorst) ? 'best' : 'both';
     var out = 'Portfolio health — ' + phCtx + ' (' + phSites.length + ' sites, network avg $' + phNetCPV.toFixed(2) + '/visit):\n\n';
     out += phBelow.length + ' sites at or below network avg ✓   ' + phAbove.length + ' sites above network avg\n\n';
-    out += 'Most efficient (lowest CPV):\n' + phTop.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit' + (phCost[s]/phSV[s]<=phNetCPV?' ✓':''); }).join('\n');
-    if (phBot.length && phBot[0] !== phTop[phTop.length-1]) {
+    if (phMode === 'worst') {
+      if (!phAbove.length) {
+        out += 'No sites are running above the network average — nothing flagged for attention in this view.';
+      } else {
+        var phWorst = phAbove.slice().sort(function(a,b){ return phCost[b]/phSV[b] - phCost[a]/phSV[a]; }).slice(0, Math.min(10, phAbove.length));
+        out += 'Sites needing attention (highest CPV vs network avg):\n' + phWorst.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit (+$' + ((phCost[s]/phSV[s])-phNetCPV).toFixed(2) + ' vs avg)'; }).join('\n');
+      }
+      return out;
+    }
+    if (phMode !== 'worst') {
+      out += 'Most efficient (lowest CPV):\n' + phTop.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit' + (phCost[s]/phSV[s]<=phNetCPV?' ✓':''); }).join('\n');
+    }
+    if (phMode === 'both' && phBot.length && phBot[0] !== phTop[phTop.length-1]) {
       out += '\n\nHighest CPV (sites to review):\n' + phBot.map(function(s){ return '• ' + s + ': $' + (phCost[s]/phSV[s]).toFixed(2) + '/visit (+$' + ((phCost[s]/phSV[s])-phNetCPV).toFixed(2) + ' vs avg)'; }).join('\n');
     }
     return out;
