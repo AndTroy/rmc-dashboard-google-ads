@@ -632,6 +632,54 @@
     }
     .summary-btn:hover { background: var(--red); }
 
+    /* ── BUDGET SIMULATION TABLE ─────────────────────────────── */
+    .sim-note {
+      font-size: 11px;
+      color: var(--text-gray);
+      margin-top: 10px;
+      line-height: 1.7;
+    }
+    .cap-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--gray);
+      color: var(--text-gray);
+      border: 1px solid var(--mid-gray);
+      border-radius: 10px;
+      padding: 1px 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+      letter-spacing: .5px;
+    }
+    .sim-summary {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding: 14px 18px;
+      background: var(--gray);
+      border-radius: 8px;
+    }
+    .sim-stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--text-gray);
+    }
+    .sim-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--black);
+      margin-top: 3px;
+    }
+    tr.sim-total td {
+      font-weight: 700;
+      border-top: 2px solid var(--red);
+      background: #fff7f7 !important;
+    }
+
   </style>
 </head>
 <body>
@@ -832,6 +880,30 @@
         <tbody id="tableBody"></tbody>
       </table>
       <div class="table-footer" id="tableFooter"></div>
+    </div>
+
+    <!-- BUDGET SIMULATION — 28-DAY AVG OPPORTUNITY TABLE -->
+    <div class="table-card" id="simCard" style="display:none">
+      <div class="table-header-row">
+        <div class="table-title">Recommended Additional Spend &mdash; 28-Day Average</div>
+        <input type="text" class="table-search" id="simSearch" placeholder="Search site or region&hellip;" oninput="renderSimTable()">
+      </div>
+      <div class="sim-summary" id="simSummary"></div>
+      <table id="simTable">
+        <thead>
+          <tr>
+            <th onclick="sortSimBy('siteId')">Site ID</th>
+            <th onclick="sortSimBy('region')">Region</th>
+            <th onclick="sortSimBy('addl')" style="text-align:right">Rec. Monthly Addl. Spend</th>
+            <th onclick="sortSimBy('daily')" style="text-align:right">Rec. Total Daily Avg.</th>
+            <th onclick="sortSimBy('visits')" style="text-align:right">Est. Monthly Store Visits</th>
+            <th onclick="sortSimBy('cpv')" style="text-align:right">Est. Cost / Store Visit</th>
+          </tr>
+        </thead>
+        <tbody id="simBody"></tbody>
+      </table>
+      <div class="table-footer" id="simFooter"></div>
+      <div class="sim-note" id="simNote"></div>
     </div>
 
   </div><!-- /dashboard -->
@@ -1068,6 +1140,169 @@ function initDashboard() {
     rawData.length.toLocaleString() + ' rows · ' + months.length + ' months · ' + accounts.length + ' regions';
 
   applyFilters();
+  loadSimData();
+}
+
+
+/* ================================================================
+   BUDGET SIMULATION — 28-DAY AVERAGE OPPORTUNITY TABLE
+   Source: Google Ads budget simulator export,
+   "LBF PMax Addl. Spend Rec. (28-Day Avg)" tab.
+================================================================ */
+var SIM_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&gid=309731259&headers=1';
+var SIM_CAP_TARGET = 500;    // STORE_VISIT_SPEND_CAP_TARGET in the Ads script
+var SIM_CPV_TARGET = 5.20;   // CPA_THRESHOLD 2.60 x2 (Franchise Partner halving convention)
+var SIM_DAYS_PER_MONTH = 30.4;
+var simData = [];
+var simSortCol = 'addl', simSortDir = -1;
+
+// Parses "$1,250" / "$5.19" / "" into a number or null (blank stays blank,
+// never becomes 0 — the Ads script leaves cells empty when a campaign has
+// no interpolatable simulation).
+function simNum(v) {
+  if (v === null || v === undefined) return null;
+  var s = String(v).replace(/[$,\s]/g, '');
+  if (s === '') return null;
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function loadSimData() {
+  var simCtrl = new AbortController();
+  var simTimer = setTimeout(function() { simCtrl.abort(); }, 10000);
+  fetch(SIM_CSV_URL, { signal: simCtrl.signal })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(txt) {
+      clearTimeout(simTimer);
+      var parsed = Papa.parse(txt, { header: true, skipEmptyLines: true });
+      simData = parsed.data.map(function(r) {
+        return {
+          siteId: (r['Site ID'] || '').trim(),
+          region: (r['Region'] || '').trim(),
+          addl:   simNum(r['Rec. Monthly Addl. Ad Spend']),
+          daily:  simNum(r['Rec. Total Daily Avg. Ad Spend']),
+          visits: simNum(r['Est. Total Monthly Store Visits']),
+          cpv:    simNum(r['Est. Cost per Store Visit'])
+        };
+      }).filter(function(r) {
+        // Site ID pattern doubles as the filter that drops the sheet's
+        // trailing Total / Average / Median rows.
+        return /^[A-Z]{2,3}\d{2,4}$/.test(r.siteId);
+      });
+      if (simData.length) {
+        document.getElementById('simCard').style.display = 'block';
+        renderSimTable();
+      }
+    })
+    .catch(function(e) {
+      clearTimeout(simTimer);
+      document.getElementById('simCard').style.display = 'block';
+      document.getElementById('simBody').innerHTML =
+        '<tr><td colspan="6" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
+        'Could not load budget simulation data (' + esc(e.message || 'network error') + ').<br>' +
+        'The simulator sheet must be reachable cross-origin. If this persists, use ' +
+        'File &rarr; Share &rarr; Publish to web on the &ldquo;LBF PMax Addl. Spend Rec. (28-Day Avg)&rdquo; ' +
+        'tab as CSV, then set SIM_CSV_URL to that published link.</td></tr>';
+      document.getElementById('simSummary').style.display = 'none';
+    });
+}
+
+function sortSimBy(col) {
+  if (simSortCol === col) simSortDir *= -1;
+  else { simSortCol = col; simSortDir = (col === 'siteId' || col === 'region') ? 1 : -1; }
+  renderSimTable();
+}
+
+function renderSimTable() {
+  if (!simData.length) return;
+  var q = (document.getElementById('simSearch').value || '').toLowerCase();
+  var accEl = document.getElementById('filterAccount');
+  var rmcEl = document.getElementById('filterRMC');
+  var acc = accEl ? accEl.value : 'all';
+  var rmc = rmcEl ? rmcEl.value : 'all';
+  var accRegion = acc !== 'all' ? shortName(acc) : null;
+  var rmcSites = (rmc !== 'all' && typeof RMC_SITES !== 'undefined') ? RMC_SITES[rmc] : null;
+
+  var rows = simData.filter(function(r) {
+    if (accRegion && r.region.toLowerCase() !== accRegion.toLowerCase()) return false;
+    if (rmcSites && rmcSites.indexOf(r.siteId) === -1) return false;
+    if (q && r.siteId.toLowerCase().indexOf(q) === -1 && r.region.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+
+  rows = rows.slice().sort(function(a, b) {
+    var va = a[simSortCol], vb = b[simSortCol];
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return simSortDir * (va - vb);
+    return simSortDir * String(va).localeCompare(String(vb));
+  });
+
+  // Sort arrows — scoped to this table so the campaign table is untouched
+  var simThs = document.querySelectorAll('#simTable thead th');
+  var order = ['siteId', 'region', 'addl', 'daily', 'visits', 'cpv'];
+  for (var i = 0; i < simThs.length; i++) {
+    simThs[i].classList.remove('sorted-asc', 'sorted-desc');
+    if (order[i] === simSortCol) simThs[i].classList.add(simSortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  }
+
+  var tAddl = 0, tVisits = 0, tDaily = 0, capped = 0, blank = 0, html = '';
+  rows.forEach(function(r) {
+    if (r.addl !== null)   tAddl   += r.addl;
+    if (r.visits !== null) tVisits += r.visits;
+    if (r.daily !== null)  tDaily  += r.daily;
+    if (r.addl === null)   blank++;
+    var isCap = (r.visits !== null && r.visits >= SIM_CAP_TARGET);
+    if (isCap) capped++;
+    html += '<tr>' +
+      '<td>' + esc(r.siteId) + (isCap ? '<span class="cap-badge" title="At or above the ' + SIM_CAP_TARGET + '-visit spend cap">CAP</span>' : '') + '</td>' +
+      '<td>' + esc(r.region) + '</td>' +
+      '<td class="num highlight-val">' + (r.addl === null ? '&mdash;' : '$' + numFmt(r.addl)) + '</td>' +
+      '<td class="num">' + (r.daily === null ? '&mdash;' : '$' + r.daily.toFixed(2)) + '</td>' +
+      '<td class="num">' + (r.visits === null ? '&mdash;' : numFmt(r.visits)) + '</td>' +
+      '<td class="num">' + (r.cpv === null ? '&mdash;' : '$' + r.cpv.toFixed(2)) + '</td>' +
+      '</tr>';
+  });
+
+  var blendedCPV = tVisits > 0 ? (tDaily * SIM_DAYS_PER_MONTH) / tVisits : null;
+
+  if (!rows.length) {
+    html = '<tr><td colspan="6" style="padding:20px; color:var(--text-gray)">No sites match the current filters.</td></tr>';
+  } else {
+    html += '<tr class="sim-total">' +
+      '<td>Total</td><td>' + numFmt(rows.length) + ' sites</td>' +
+      '<td class="num">$' + numFmt(tAddl) + '</td>' +
+      '<td class="num">$' + numFmt(Math.round(tDaily)) + '</td>' +
+      '<td class="num">' + numFmt(tVisits) + '</td>' +
+      '<td class="num">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</td>' +
+      '</tr>';
+  }
+  document.getElementById('simBody').innerHTML = html;
+
+  document.getElementById('simSummary').innerHTML =
+    '<div><div class="sim-stat-label">Total Addl. Spend</div><div class="sim-stat-value">$' + numFmt(tAddl) + '</div></div>' +
+    '<div><div class="sim-stat-label">Est. Monthly Visits</div><div class="sim-stat-value">' + numFmt(tVisits) + '</div></div>' +
+    '<div><div class="sim-stat-label">Blended Est. CPV</div><div class="sim-stat-value">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</div></div>' +
+    '<div><div class="sim-stat-label">Sites</div><div class="sim-stat-value">' + numFmt(rows.length) + '</div></div>';
+
+  document.getElementById('simFooter').textContent =
+    'Showing ' + rows.length + ' of ' + simData.length + ' sites — ' + scopeLabel({ ignoreMonths: true });
+
+  var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing 28-day lookback, ' +
+    'and scaled to a full month assuming performance holds at that spend level. ' +
+    'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50.';
+  if (capped) {
+    note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' marked <span class="cap-badge">CAP</span> ' +
+      (capped === 1 ? 'sits' : 'sit') + ' at the ' + SIM_CAP_TARGET + '-visit ceiling — spend there is deliberately held ' +
+      'below what the $' + SIM_CPV_TARGET.toFixed(2) + ' cost-per-visit target alone would call for, so read those as capped rather than optimal.';
+  }
+  if (blank) note += ' ' + blank + ' site' + (blank === 1 ? '' : 's') + ' show &mdash; (no simulation Google could model).';
+  note += ' This is a point-in-time snapshot, not history — simulations expire and are recomputed by Google.';
+  document.getElementById('simNote').innerHTML = note;
 }
 
 /* ================================================================
@@ -1098,6 +1333,7 @@ function applyFilters() {
   updateKPIs();
   updateCharts();
   renderTable();
+  renderSimTable();
 }
 
 function resetFilters() {
