@@ -2863,8 +2863,16 @@ function getSiteId(campaignName) {
 }
 function cleanCampaignName(name) {
   if (!name) return '';
-  // Remove trailing snake_case tracking segments (e.g. _pmax_sv_bid2024q1)
-  return name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
+  // 1. Strip the trailing snake_case tracking slug
+  //    (e.g. "…| corporate_q3_2025_visits_co30_central" -> "…| corporate")
+  var out = name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
+  // 2. Drop the leftover funding-source word left behind by step 1
+  //    ("corporate", and its common siblings) so the display name ends at
+  //    the campaign type, e.g. "V4 | Brand Fund | Central | CO30 | Performance Max"
+  out = out.replace(/\s*\|\s*(corporate|franchise|lbf)\s*$/i, '').trim();
+  // 3. Tidy any dangling separator
+  out = out.replace(/\s*\|\s*$/, '').trim();
+  return out;
 }
 function round2(n) {
   return Math.round((n || 0) * 100) / 100;
