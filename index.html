@@ -1108,7 +1108,19 @@ function initDashboard() {
 
   // Build filter options
   var accounts = unique(rawData, 'Account Name').sort();
-  var months   = unique(rawData, 'Month').sort();
+  // Normalize + dedupe months to YYYY-MM before building the From/To
+  // dropdowns. The raw 'Month' values are full dates ("2026-06-01"), but
+  // applyFilters() compares against norm(r['Month']) ("2026-06"). If the
+  // dropdown values stay as full dates, "2026-06" >= "2026-06-01" is FALSE
+  // (string comparison treats the shorter prefix as "less than"), so the
+  // exact month picked as "Month From" gets silently excluded from every
+  // chart and count.
+  var monthSeen = {};
+  var months = unique(rawData, 'Month').map(norm).filter(function(m) {
+    if (monthSeen[m]) return false;
+    monthSeen[m] = true;
+    return true;
+  }).sort();
 
   var accSel = document.getElementById('filterAccount');
   accSel.innerHTML = '<option value="all">All Regions</option>';
