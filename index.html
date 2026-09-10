@@ -906,7 +906,7 @@
     <!-- BUDGET SIMULATION — 28-DAY AVG OPPORTUNITY TABLE -->
     <div class="table-card" id="simCard" style="display:none">
       <div class="table-header-row">
-        <div class="table-title">Recommended Additional Spend &mdash; 28-Day Average</div>
+        <div class="table-title">Recommended Additional Spend &mdash; 56-Day Average</div>
         <input type="text" class="table-search" id="simSearch" placeholder="Search site or region&hellip;" oninput="renderSimTable()">
       </div>
       <div class="sim-summary" id="simSummary"></div>
@@ -1169,11 +1169,16 @@ function initDashboard() {
 /* ================================================================
    BUDGET SIMULATION — 28-DAY AVERAGE OPPORTUNITY TABLE
    Source: Google Ads budget simulator export,
-   "LBF PMax Addl. Spend Rec. (28-Day Avg)" tab.
+   "LBF PMax Addl. Spend Rec. (56-Day Avg)" tab.
 ================================================================ */
-var SIM_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&gid=309731259&headers=1';
+// Referenced by TAB NAME rather than gid: the name is stable in the Ads
+// script (SITE_SHEET_AVG56_NAME), whereas a gid changes if the tab is ever
+// deleted and recreated. Swap the sheet= value to switch lookbacks, e.g.
+// "…(14-Day Avg)", "…(21-Day Avg)", "…(28-Day Avg)".
+var SIM_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&headers=1&sheet=LBF+PMax+Addl.+Spend+Rec.+(56-Day+Avg)';
+var SIM_LOOKBACK_DAYS = 56;  // used in the note under the table
 var SIM_CAP_TARGET = 500;    // STORE_VISIT_SPEND_CAP_TARGET in the Ads script
-var SIM_CPV_TARGET = 5.20;   // CPA_THRESHOLD 2.60 x2 (Franchise Partner halving convention)
+var SIM_CPV_TARGET = 7.00;   // CPA_THRESHOLD 3.50 x2 (Franchise Partner halving convention) — keep in sync with the Ads script
 var SIM_DAYS_PER_MONTH = 30.4;
 var simData = [];
 var simSortCol = 'addl', simSortDir = -1;
@@ -1226,7 +1231,7 @@ function loadSimData() {
         '<tr><td colspan="6" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
         'Could not load budget simulation data (' + esc(e.message || 'network error') + ').<br>' +
         'The simulator sheet must be reachable cross-origin. If this persists, use ' +
-        'File &rarr; Share &rarr; Publish to web on the &ldquo;LBF PMax Addl. Spend Rec. (28-Day Avg)&rdquo; ' +
+        'File &rarr; Share &rarr; Publish to web on the &ldquo;LBF PMax Addl. Spend Rec. (' + SIM_LOOKBACK_DAYS + '-Day Avg)&rdquo; ' +
         'tab as CSV, then set SIM_CSV_URL to that published link.</td></tr>';
       document.getElementById('simSummary').style.display = 'none';
     });
@@ -1324,7 +1329,7 @@ function renderSimTable() {
   renderExpandBtn('simExpandWrap', simExpanded, rows.length, simDisplay.length,
                   'toggleSimExpand', 'sites');
 
-  var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing 28-day lookback, ' +
+  var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing ' + SIM_LOOKBACK_DAYS + '-day lookback, ' +
     'and scaled to a full month assuming performance holds at that spend level. ' +
     'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50.';
   if (capped) {
