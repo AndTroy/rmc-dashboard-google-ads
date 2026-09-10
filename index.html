@@ -1285,9 +1285,8 @@ function renderSimTable() {
 
   var simDisplay = simExpanded ? rows : rows.slice(0, COLLAPSED_ROWS);
   simDisplay.forEach(function(r) {
-    var isCap = (r.visits !== null && r.visits >= SIM_CAP_TARGET);
     html += '<tr>' +
-      '<td>' + esc(r.siteId) + (isCap ? '<span class="cap-badge" title="At or above the ' + SIM_CAP_TARGET + '-visit spend cap">CAP</span>' : '') + '</td>' +
+      '<td>' + esc(r.siteId) + '</td>' +
       '<td>' + esc(r.region) + '</td>' +
       '<td class="num highlight-val">' + (r.addl === null ? '&mdash;' : '$' + numFmt(r.addl)) + '</td>' +
       '<td class="num">' + (r.daily === null ? '&mdash;' : '$' + r.daily.toFixed(2)) + '</td>' +
@@ -1329,9 +1328,10 @@ function renderSimTable() {
     'and scaled to a full month assuming performance holds at that spend level. ' +
     'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50.';
   if (capped) {
-    note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' marked <span class="cap-badge">CAP</span> ' +
+    note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' ' +
       (capped === 1 ? 'sits' : 'sit') + ' at the ' + SIM_CAP_TARGET + '-visit ceiling — spend there is deliberately held ' +
-      'below what the $' + SIM_CPV_TARGET.toFixed(2) + ' cost-per-visit target alone would call for, so read those as capped rather than optimal.';
+      'below what the $' + SIM_CPV_TARGET.toFixed(2) + ' cost-per-visit target alone would call for, which is why a few ' +
+      'estimated cost-per-visit figures fall well outside the usual $' + SIM_CPV_TARGET.toFixed(2) + ' cluster.';
   }
   if (blank) note += ' ' + blank + ' site' + (blank === 1 ? '' : 's') + ' show &mdash; (no simulation Google could model).';
   note += ' This is a point-in-time snapshot, not history — simulations expire and are recomputed by Google.';
