@@ -2882,7 +2882,11 @@ function cleanCampaignName(name) {
   if (!name) return '';
   // 1. Strip the trailing snake_case tracking slug
   //    (e.g. "…| corporate_q3_2025_visits_co30_central" -> "…| corporate")
-  var out = name.replace(/_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\s*$/i, '').trim();
+  //    Segments may also contain kebab-case pieces (e.g. "new-subscriptions"),
+  //    so hyphens are allowed inside each underscore-separated chunk -
+  //    without them, a hyphen breaks the match chain and the whole slug
+  //    (e.g. "corporate_q3_2025_new-subscriptions") is left showing.
+  var out = name.replace(/_[a-z][a-z0-9-]*(?:_[a-z0-9-]+)*\s*$/i, '').trim();
   // 2. Drop the leftover funding-source word left behind by step 1
   //    ("corporate", and its common siblings) so the display name ends at
   //    the campaign type, e.g. "V4 | Brand Fund | Central | CO30 | Performance Max"
