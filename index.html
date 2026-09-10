@@ -680,6 +680,26 @@
       background: #fff7f7 !important;
     }
 
+    /* ── EXPAND / COLLAPSE ───────────────────────────────────── */
+    .expand-wrap { margin-top: 14px; text-align: center; }
+    .expand-btn {
+      background: var(--gray);
+      color: var(--black);
+      border: 1px solid var(--mid-gray);
+      padding: 8px 22px;
+      border-radius: 20px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .expand-btn:hover {
+      background: #fff0f1;
+      border-color: var(--red);
+      color: var(--red);
+    }
+
   </style>
 </head>
 <body>
@@ -880,6 +900,7 @@
         <tbody id="tableBody"></tbody>
       </table>
       <div class="table-footer" id="tableFooter"></div>
+      <div class="expand-wrap" id="tableExpandWrap"></div>
     </div>
 
     <!-- BUDGET SIMULATION — 28-DAY AVG OPPORTUNITY TABLE -->
@@ -903,6 +924,7 @@
         <tbody id="simBody"></tbody>
       </table>
       <div class="table-footer" id="simFooter"></div>
+      <div class="expand-wrap" id="simExpandWrap"></div>
       <div class="sim-note" id="simNote"></div>
     </div>
 
@@ -1250,14 +1272,20 @@ function renderSimTable() {
     if (order[i] === simSortCol) simThs[i].classList.add(simSortDir === 1 ? 'sorted-asc' : 'sorted-desc');
   }
 
+  // Totals/summary always reflect every filtered row, never just the
+  // visible slice — collapsing is presentation only.
   var tAddl = 0, tVisits = 0, tDaily = 0, capped = 0, blank = 0, html = '';
   rows.forEach(function(r) {
     if (r.addl !== null)   tAddl   += r.addl;
     if (r.visits !== null) tVisits += r.visits;
     if (r.daily !== null)  tDaily  += r.daily;
     if (r.addl === null)   blank++;
+    if (r.visits !== null && r.visits >= SIM_CAP_TARGET) capped++;
+  });
+
+  var simDisplay = simExpanded ? rows : rows.slice(0, COLLAPSED_ROWS);
+  simDisplay.forEach(function(r) {
     var isCap = (r.visits !== null && r.visits >= SIM_CAP_TARGET);
-    if (isCap) capped++;
     html += '<tr>' +
       '<td>' + esc(r.siteId) + (isCap ? '<span class="cap-badge" title="At or above the ' + SIM_CAP_TARGET + '-visit spend cap">CAP</span>' : '') + '</td>' +
       '<td>' + esc(r.region) + '</td>' +
@@ -1275,6 +1303,7 @@ function renderSimTable() {
   } else {
     html += '<tr class="sim-total">' +
       '<td>Total</td><td>' + numFmt(rows.length) + ' sites</td>' +
+
       '<td class="num">$' + numFmt(tAddl) + '</td>' +
       '<td class="num">$' + numFmt(Math.round(tDaily)) + '</td>' +
       '<td class="num">' + numFmt(tVisits) + '</td>' +
@@ -1290,7 +1319,11 @@ function renderSimTable() {
     '<div><div class="sim-stat-label">Sites</div><div class="sim-stat-value">' + numFmt(rows.length) + '</div></div>';
 
   document.getElementById('simFooter').textContent =
-    'Showing ' + rows.length + ' of ' + simData.length + ' sites — ' + scopeLabel({ ignoreMonths: true });
+    'Showing ' + simDisplay.length + ' of ' + rows.length + ' matching sites (' +
+    simData.length + ' total) — ' + scopeLabel({ ignoreMonths: true });
+
+  renderExpandBtn('simExpandWrap', simExpanded, rows.length, simDisplay.length,
+                  'toggleSimExpand', 'sites');
 
   var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing 28-day lookback, ' +
     'and scaled to a full month assuming performance holds at that spend level. ' +
@@ -1500,6 +1533,25 @@ function kill(id) {
    TABLE
 ================================================================ */
 var TABLE_LIMIT = 300;
+var COLLAPSED_ROWS = 20;      // rows shown before "Show all" is clicked
+var tableExpanded = false;    // Campaign Performance Detail
+var simExpanded   = false;    // Recommended Additional Spend
+
+function toggleTableExpand() { tableExpanded = !tableExpanded; renderTable(); }
+function toggleSimExpand()   { simExpanded   = !simExpanded;   renderSimTable(); }
+
+// Renders the Show all / Show less control into wrapId. Hidden entirely
+// when the result set already fits inside the collapsed limit.
+function renderExpandBtn(wrapId, expanded, total, shown, onclickName, noun) {
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (total <= COLLAPSED_ROWS) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<button class="expand-btn" onclick="' + onclickName + '()">' +
+    (expanded
+      ? '↑ Show less (top ' + COLLAPSED_ROWS + ')'
+      : '↓ Show all ' + total.toLocaleString() + ' ' + noun) +
+    '</button>';
+}
 
 function renderTable() {
   var q = (document.getElementById('tableSearch').value || '').toLowerCase();
@@ -1535,7 +1587,8 @@ function renderTable() {
     }
   });
 
-  var display = rows.slice(0, TABLE_LIMIT);
+  var limit   = tableExpanded ? TABLE_LIMIT : COLLAPSED_ROWS;
+  var display = rows.slice(0, limit);
   var tbody   = document.getElementById('tableBody');
   tbody.innerHTML = '';
 
@@ -1560,7 +1613,13 @@ function renderTable() {
   });
 
   document.getElementById('tableFooter').textContent =
-    'Showing ' + display.length.toLocaleString() + ' of ' + rows.length.toLocaleString() + ' campaign rows';
+    'Showing ' + display.length.toLocaleString() + ' of ' + rows.length.toLocaleString() + ' campaign rows' +
+    (tableExpanded && rows.length > TABLE_LIMIT
+      ? ' (capped at ' + TABLE_LIMIT.toLocaleString() + ' for performance — narrow the filters to see the rest)'
+      : '');
+
+  renderExpandBtn('tableExpandWrap', tableExpanded, Math.min(rows.length, TABLE_LIMIT),
+                  display.length, 'toggleTableExpand', 'rows');
 }
 
 function sortBy(col) {
