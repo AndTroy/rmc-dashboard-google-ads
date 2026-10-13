@@ -918,6 +918,8 @@
             <th onclick="sortSimBy('region')">Region</th>
             <th onclick="sortSimBy('addl')" style="text-align:right">Rec. Monthly Addl. Spend</th>
             <th onclick="sortSimBy('daily')" style="text-align:right">Rec. Total Daily Avg.</th>
+            <th onclick="sortSimBy('prev')" style="text-align:right">Previous Rec. Addl. Spend</th>
+            <th onclick="sortSimBy('changedOn')" style="text-align:right">Last Changed</th>
             <th class="est-col" onclick="sortSimBy('visits')" style="text-align:right">Est. Monthly Store Visits</th>
             <th class="est-col" onclick="sortSimBy('cpv')" style="text-align:right">Est. Cost / Store Visit</th>
           </tr>
@@ -1198,6 +1200,13 @@ var SIM_DAYS_PER_MONTH = 30.4;
 // related note text are hidden. Flip to true to show them again.
 var SIM_SHOW_ESTIMATES = false;
 var simData = [];
+// Change history written by the Ads simulator script: one row each time a
+// site's recommended additional spend moves (plus a baseline row per site).
+// Joined to simData by Site ID. If the tab is missing or its headers don't
+// match, the Previous / Last Changed columns just show dashes.
+var SIM_HIST_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&headers=1&sheet=Recommendation+Change+Log';
+var simHistSince = null;   // earliest tracked date, for the note under the table
+var simHistLoaded = false;
 var simSortCol = 'addl', simSortDir = -1;
 
 // Parses "$1,250" / "$5.19" / "" into a number or null (blank stays blank,
@@ -1229,7 +1238,8 @@ function loadSimData() {
           addl:   simNum(r['Rec. Monthly Addl. Ad Spend']),
           daily:  simNum(r['Rec. Total Daily Avg. Ad Spend']),
           visits: simNum(r['Est. Total Monthly Store Visits']),
-          cpv:    simNum(r['Est. Cost per Store Visit'])
+          cpv:    simNum(r['Est. Cost per Store Visit']),
+          prev: null, changedOn: null, delta: null, since: null
         };
       }).filter(function(r) {
         // Site ID pattern doubles as the filter that drops the sheet's
@@ -1239,19 +1249,67 @@ function loadSimData() {
       if (simData.length) {
         document.getElementById('simCard').style.display = 'block';
         renderSimTable();
+        loadSimHistory();
       }
     })
     .catch(function(e) {
       clearTimeout(simTimer);
       document.getElementById('simCard').style.display = 'block';
       document.getElementById('simBody').innerHTML =
-        '<tr><td colspan="6" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
+        '<tr><td colspan="8" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
         'Could not load budget simulation data (' + esc(e.message || 'network error') + ').<br>' +
         'The simulator sheet must be reachable cross-origin. If this persists, use ' +
         'File &rarr; Share &rarr; Publish to web on the &ldquo;LBF PMax Addl. Spend Rec. (' + SIM_LOOKBACK_DAYS + '-Day Avg)&rdquo; ' +
         'tab as CSV, then set SIM_CSV_URL to that published link.</td></tr>';
       document.getElementById('simSummary').style.display = 'none';
     });
+}
+
+// "2026-10-20" -> "Oct 20". Anything else is shown as-is.
+function simDateLabel(d) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || '');
+  if (!m) return d || '';
+  var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return mo[parseInt(m[2], 10) - 1] + ' ' + parseInt(m[3], 10);
+}
+
+function loadSimHistory() {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 10000);
+  fetch(SIM_HIST_CSV_URL, { signal: ctrl.signal })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(txt) {
+      clearTimeout(timer);
+      var parsed = Papa.parse(txt, { header: true, skipEmptyLines: true });
+      var f = parsed.meta && parsed.meta.fields || [];
+      // Guard: a missing tab can come back as some other sheet entirely.
+      if (f.indexOf('Site ID') === -1 || f.indexOf('Previous Rec. Addl. Spend') === -1 ||
+          f.indexOf('New Rec. Addl. Spend') === -1 || f.indexOf('Date') === -1) return;
+      var hist = {};
+      parsed.data.forEach(function(r) {
+        var id = (r['Site ID'] || '').trim();
+        if (!id) return;
+        var h = hist[id] || (hist[id] = { since: null, prev: null, changedOn: null, delta: null });
+        var date = (r['Date'] || '').trim();
+        if (!h.since) h.since = date;
+        if (simHistSince === null || date < simHistSince) simHistSince = date;
+        var prev = simNum(r['Previous Rec. Addl. Spend']);
+        var next = simNum(r['New Rec. Addl. Spend']);
+        if (prev !== null && next !== null) {   // a real change; baseline rows have no previous value
+          h.prev = prev; h.changedOn = date; h.delta = next - prev;
+        }
+      });
+      simData.forEach(function(r) {
+        var h = hist[r.siteId];
+        if (h) { r.prev = h.prev; r.changedOn = h.changedOn; r.delta = h.delta; r.since = h.since; }
+      });
+      simHistLoaded = true;
+      renderSimTable();
+    })
+    .catch(function() { clearTimeout(timer); /* history is optional; leave the dashes */ });
 }
 
 function sortSimBy(col) {
@@ -1288,7 +1346,7 @@ function renderSimTable() {
 
   // Sort arrows — scoped to this table so the campaign table is untouched
   var simThs = document.querySelectorAll('#simTable thead th');
-  var order = ['siteId', 'region', 'addl', 'daily', 'visits', 'cpv'];
+  var order = ['siteId', 'region', 'addl', 'daily', 'prev', 'changedOn', 'visits', 'cpv'];
   for (var i = 0; i < simThs.length; i++) {
     simThs[i].classList.remove('sorted-asc', 'sorted-desc');
     if (order[i] === simSortCol) simThs[i].classList.add(simSortDir === 1 ? 'sorted-asc' : 'sorted-desc');
@@ -1313,6 +1371,11 @@ function renderSimTable() {
       '<td>' + esc(r.region) + '</td>' +
       '<td class="num highlight-val">' + (r.addl === null ? '&mdash;' : '$' + numFmt(r.addl)) + '</td>' +
       '<td class="num">' + (r.daily === null ? '&mdash;' : '$' + r.daily.toFixed(2)) + '</td>' +
+      '<td class="num">' + (r.prev === null ? '&mdash;' : '$' + numFmt(r.prev)) + '</td>' +
+      (r.changedOn
+        ? '<td class="num" title="Recommendation changed ' + esc(r.changedOn) + '">' + esc(simDateLabel(r.changedOn)) + ' ' +
+          (r.delta > 0 ? '&#9650;' : '&#9660;') + ' $' + numFmt(Math.abs(r.delta)) + '</td>'
+        : '<td class="num"' + (r.since ? ' title="No change since tracking began ' + esc(r.since) + '"' : '') + '>&mdash;</td>') +
       '<td class="num est-col">' + (r.visits === null ? '&mdash;' : numFmt(r.visits)) + '</td>' +
       '<td class="num est-col">' + (r.cpv === null ? '&mdash;' : '$' + r.cpv.toFixed(2)) + '</td>' +
       '</tr>';
@@ -1321,13 +1384,14 @@ function renderSimTable() {
   var blendedCPV = tVisits > 0 ? (tDaily * SIM_DAYS_PER_MONTH) / tVisits : null;
 
   if (!rows.length) {
-    html = '<tr><td colspan="6" style="padding:20px; color:var(--text-gray)">No sites match the current filters.</td></tr>';
+    html = '<tr><td colspan="8" style="padding:20px; color:var(--text-gray)">No sites match the current filters.</td></tr>';
   } else {
     html += '<tr class="sim-total">' +
       '<td>Total</td><td>' + numFmt(rows.length) + ' sites</td>' +
 
       '<td class="num">$' + numFmt(tAddl) + '</td>' +
       '<td class="num">$' + numFmt(Math.round(tDaily)) + '</td>' +
+      '<td></td><td></td>' +
       '<td class="num est-col">' + numFmt(tVisits) + '</td>' +
       '<td class="num est-col">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</td>' +
       '</tr>';
@@ -1356,6 +1420,10 @@ function renderSimTable() {
       (capped === 1 ? 'sits' : 'sit') + ' at the ' + SIM_CAP_TARGET + '-visit ceiling — spend there is deliberately held ' +
       'below what the $' + SIM_CPV_TARGET.toFixed(2) + ' cost-per-visit target alone would call for, which is why a few ' +
       'estimated cost-per-visit figures fall well outside the usual $' + SIM_CPV_TARGET.toFixed(2) + ' cluster.';
+  }
+  if (simHistLoaded) {
+    note += ' &ldquo;Previous Rec.&rdquo; is the recommendation before its most recent change, and &ldquo;Last Changed&rdquo; shows when it changed and by how much; ' +
+      'a dash means no change since tracking began' + (simHistSince ? ' (' + esc(simDateLabel(simHistSince)) + ')' : '') + '.';
   }
   if (blank) note += ' ' + blank + ' site' + (blank === 1 ? '' : 's') + ' show &mdash; (no simulation Google could model).';
   note += ' This is a point-in-time snapshot, not history — simulations expire and are recomputed by Google.';
