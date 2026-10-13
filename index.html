@@ -1350,7 +1350,7 @@ function renderSimTable() {
   var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing ' + SIM_LOOKBACK_DAYS + '-day lookback, ' +
     'and scaled to a full month assuming performance holds at that spend level. ' +
     'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50. ' +
-    'Predicted visit gains above each site\'s current budget are discounted to match what past budget changes actually delivered (about 44% of the simulator\'s prediction), so recommendations are more conservative than the raw simulator output.';
+    'Predicted visit gains above each site\'s current budget are discounted to match what past budget changes actually delivered, so recommendations are more conservative than the raw simulator output. The discount is re-measured automatically as more budget changes are tracked.';
   if (SIM_SHOW_ESTIMATES && capped) {
     note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' ' +
       (capped === 1 ? 'sits' : 'sit') + ' at the ' + SIM_CAP_TARGET + '-visit ceiling — spend there is deliberately held ' +
