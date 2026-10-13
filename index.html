@@ -633,6 +633,7 @@
     .summary-btn:hover { background: var(--red); }
 
     /* ── BUDGET SIMULATION TABLE ─────────────────────────────── */
+    #simTable.sim-hide-est .est-col { display: none; }
     .sim-note {
       font-size: 11px;
       color: var(--text-gray);
@@ -917,8 +918,8 @@
             <th onclick="sortSimBy('region')">Region</th>
             <th onclick="sortSimBy('addl')" style="text-align:right">Rec. Monthly Addl. Spend</th>
             <th onclick="sortSimBy('daily')" style="text-align:right">Rec. Total Daily Avg.</th>
-            <th onclick="sortSimBy('visits')" style="text-align:right">Est. Monthly Store Visits</th>
-            <th onclick="sortSimBy('cpv')" style="text-align:right">Est. Cost / Store Visit</th>
+            <th class="est-col" onclick="sortSimBy('visits')" style="text-align:right">Est. Monthly Store Visits</th>
+            <th class="est-col" onclick="sortSimBy('cpv')" style="text-align:right">Est. Cost / Store Visit</th>
           </tr>
         </thead>
         <tbody id="simBody"></tbody>
@@ -944,11 +945,11 @@ var allCampaigns = []; // populated in initDashboard
 
 /* RMC → site ID lookup (sourced from RMC Assignments reference) */
 var RMC_SITES = {
-  'Erik Durham':    ['AL374','AR129','AR143','AR18','AR375','AR91','AZ217','AZ452','AZ453','FL08','FL105','FL138','FL183','FL193','FL194','FL20','FL207','FL21','FL216','FL28','FL31','FL332','FL333','FL340','FL344','FL346','FL347','FL350','FL356','FL380','FL383','FL409','FL413','FL415','FL437','FL57','FL74','FR357','GA212','GA26','GA419','GA42','GA61','GA75','IN403','LA114','LA118','LA144','LA27','LA92','MI166','MI170','MI208','MI229','MS349','NC130','NC205','NC477','NM113','OK117','OK121','OK157','OK167','OK168','OK209','OK330','OK342','OK393','ON203','SC126','SC479','TN180','TN182','TN192','TN29','TN89','TX111','TX154','TX160','TX17','TX175','TX190','TX215','TX34','TX358','TX359','TX364','TX412','TX429','TX451','TX480','TX72','UT426'],
-  'Emily Lenau':    ['DE112','DE66','IA150','IA36','IA377','IA69','IA81','IA82','IA87','IA94','IL125','IL164','IL188','IL348','IL54','IL99','IN25','MI124','MI147','MI159','MI176','MI185','MI210','MI23','MI341','MI345','MI355','MI386','MI443','MI470','MI48','MI481','MN108','MN116','MN173','MN362','MN378','MN407','MN408','MN438','MN83','MN88','MO156','MO218','MO58','MO77','ND132','ND354','ND360','ND361','OH134','OH433','OH449','PA123','PA135','PA343','PA372','PA467','SD165','VA115','VA12','VA220','VA424','VA76','WI141','WI184','WI334','WI382','WI418','WI454','WI70','WI71','WY201'],
-  'Joel Fullmer':   ['MD213','MD366','MD369','MD435','NC45','NC62','NE10','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','OH471','OH472','OH473','OH474','OH475','OK204','OK442','OK476','PA337','PA368','PA464','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX417','TX428','TX431','TX432','TX445','TX463','UT414','VA162'],
-  'Matt Witkowski':  ['AK401','AK402','AR67','CA09','CA102','CA136','CA140','CA149','CA178','CO30','CO338','CO35','CO394','IA163','ID158','ID169','ID416','ID53','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','KY422','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV478','OK84','OK90','OK336','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110'],
-  'Megan Meerman':  ['FL331','MI03','MI11','MI214','MI223','MI224','MI32','MI37','MI376','MI381','MI391','MI421','MI423','MI425','OH40']
+  'Erik Durham':    ['AL374','AR129','AR143','AR18','AR375','AR91','AZ452','AZ453','FL08','FL105','FL138','FL183','FL194','FL198','FL20','FL21','FL28','FL31','FL33','FL332','FL333','FL344','FL346','FL347','FL350','FL356','FL380','FL383','FL398','FL409','FL413','FL437','FL50','FL57','FL74','GA26','IN403','KY226','KY422','LA114','LA118','LA144','LA27','LA92','MI166','MI170','MI229','MS349','NC130','NC205','NC477','OK117','OK121','OK157','OK167','OK168','OK209','OK330','OK342','OK393','ON203','ON446','PR155','PR176','SC126','SC479','TN180','TN182','TN192','TN29','TN89','TX111','TX154','TX160','TX17','TX175','TX190','TX215','TX34','TX358','TX359','TX364','TX412','TX429','TX448','TX451','TX480','TX72','UT426'],
+  'Emily Lenau':    ['DE112','DE66','IA36','IA377','IA94','IL125','IL188','IL348','IL460','IL54','IL99','IN25','MI120','MI124','MI147','MI159','MI176','MI185','MI208','MI210','MI341','MI345','MI355','MI386','MI443','MI462','MI470','MI48','MI481','MN108','MN438','MN88','MO156','MO218','MO58','MO77','OH134','OH433','OH449','PA123','PA135','PA343','PA351','PA372','PA467','VA115','VA12','VA152','VA186','VA220','VA424','VA76','WI103','WI127','WI128','WI141','WI142','WI146','WI184','WI207','WI334','WI382','WI404','WI418','WI454','WI70','WI71'],
+  'Joel Fullmer':    ['MD213','MD366','MD369','MD435','NC45','NC62','NE10','NE148','NE379','NE39','NE441','NE444','NE458','NE461','NE465','NE79','NJ106','OH471','OH472','OH473','OH474','OH475','OK204','OK442','OK476','PA337','PA368','PA464','PA93','SC339','SC371','SC411','SC430','SC440','SC63','TX07','TX221','TX370','TX399','TX417','TX428','TX431','TX432','TX445','TX463','UT414','VA162','VA171'],
+  'Matt Witkowski':    ['AK401','AK402','AR67','CA09','CA102','CA136','CA140','CA149','CA178','CA179','CA227','CO219','CO30','CO338','CO35','CO394','FL19','FL340','FL405','FL55','IA150','IA163','IA69','IA81','IA82','IA87','ID158','ID169','ID211','ID416','ID53','IL164','KS05','KS104','KS13','KS153','KS16','KS197','KS200','KS222','KS434','KS60','KS64','MN116','MN173','MN362','MN378','MN407','MN408','MN83','MO107','ND132','ND354','ND360','ND361','NE151','NE161','NE335','NE43','NE455','NE457','NE52','NE85','NV137','NV15','NV202','NV373','NV478','OK336','OK84','OK90','OR100','SD165','SD187','TX122','TX131','TX133','TX145','TX174','TX353','TX400','TX406','TX410','TX420','TX98','WA228','WA363','WA390','WY110','WY201'],
+  'Megan Meerman':    ['FL193','FL331','FL415','GA419','GA42','GA61','GA75','MI03','MI11','MI214','MI22','MI223','MI224','MI23','MI32','MI37','MI376','MI381','MI391','MI421','MI423','MI425','MI456','MI459','MI468','OH40']
 };
 
 function buildCampaignOptions(filterText) {
@@ -1192,6 +1193,10 @@ var SIM_LOOKBACK_DAYS = 56;  // used in the note under the table
 var SIM_CAP_TARGET = 500;    // STORE_VISIT_SPEND_CAP_TARGET in the Ads script
 var SIM_CPV_TARGET = 7.00;   // CPA_THRESHOLD 3.50 x2 (Franchise Partner halving convention) — keep in sync with the Ads script
 var SIM_DAYS_PER_MONTH = 30.4;
+// Estimated store visits / est. cost per store visit have not been audited
+// for accuracy yet. While false, those columns, their summary stats and the
+// related note text are hidden. Flip to true to show them again.
+var SIM_SHOW_ESTIMATES = false;
 var simData = [];
 var simSortCol = 'addl', simSortDir = -1;
 
@@ -1300,6 +1305,7 @@ function renderSimTable() {
     if (r.visits !== null && r.visits >= SIM_CAP_TARGET) capped++;
   });
 
+  document.getElementById('simTable').classList.toggle('sim-hide-est', !SIM_SHOW_ESTIMATES);
   var simDisplay = simExpanded ? rows : rows.slice(0, COLLAPSED_ROWS);
   simDisplay.forEach(function(r) {
     html += '<tr>' +
@@ -1307,8 +1313,8 @@ function renderSimTable() {
       '<td>' + esc(r.region) + '</td>' +
       '<td class="num highlight-val">' + (r.addl === null ? '&mdash;' : '$' + numFmt(r.addl)) + '</td>' +
       '<td class="num">' + (r.daily === null ? '&mdash;' : '$' + r.daily.toFixed(2)) + '</td>' +
-      '<td class="num">' + (r.visits === null ? '&mdash;' : numFmt(r.visits)) + '</td>' +
-      '<td class="num">' + (r.cpv === null ? '&mdash;' : '$' + r.cpv.toFixed(2)) + '</td>' +
+      '<td class="num est-col">' + (r.visits === null ? '&mdash;' : numFmt(r.visits)) + '</td>' +
+      '<td class="num est-col">' + (r.cpv === null ? '&mdash;' : '$' + r.cpv.toFixed(2)) + '</td>' +
       '</tr>';
   });
 
@@ -1322,16 +1328,16 @@ function renderSimTable() {
 
       '<td class="num">$' + numFmt(tAddl) + '</td>' +
       '<td class="num">$' + numFmt(Math.round(tDaily)) + '</td>' +
-      '<td class="num">' + numFmt(tVisits) + '</td>' +
-      '<td class="num">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</td>' +
+      '<td class="num est-col">' + numFmt(tVisits) + '</td>' +
+      '<td class="num est-col">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</td>' +
       '</tr>';
   }
   document.getElementById('simBody').innerHTML = html;
 
   document.getElementById('simSummary').innerHTML =
     '<div><div class="sim-stat-label">Total Addl. Spend</div><div class="sim-stat-value">$' + numFmt(tAddl) + '</div></div>' +
-    '<div><div class="sim-stat-label">Est. Monthly Visits</div><div class="sim-stat-value">' + numFmt(tVisits) + '</div></div>' +
-    '<div><div class="sim-stat-label">Blended Est. CPV</div><div class="sim-stat-value">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</div></div>' +
+    (SIM_SHOW_ESTIMATES ? '<div><div class="sim-stat-label">Est. Monthly Visits</div><div class="sim-stat-value">' + numFmt(tVisits) + '</div></div>' +
+    '<div><div class="sim-stat-label">Blended Est. CPV</div><div class="sim-stat-value">' + (blendedCPV === null ? '&mdash;' : '$' + blendedCPV.toFixed(2)) + '</div></div>' : '') +
     '<div><div class="sim-stat-label">Sites</div><div class="sim-stat-value">' + numFmt(rows.length) + '</div></div>';
 
   document.getElementById('simFooter').textContent =
@@ -1344,7 +1350,7 @@ function renderSimTable() {
   var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing ' + SIM_LOOKBACK_DAYS + '-day lookback, ' +
     'and scaled to a full month assuming performance holds at that spend level. ' +
     'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50.';
-  if (capped) {
+  if (SIM_SHOW_ESTIMATES && capped) {
     note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' ' +
       (capped === 1 ? 'sits' : 'sit') + ' at the ' + SIM_CAP_TARGET + '-visit ceiling — spend there is deliberately held ' +
       'below what the $' + SIM_CPV_TARGET.toFixed(2) + ' cost-per-visit target alone would call for, which is why a few ' +
@@ -2890,7 +2896,7 @@ function cleanCampaignName(name) {
   // 2. Drop the leftover funding-source word left behind by step 1
   //    ("corporate", and its common siblings) so the display name ends at
   //    the campaign type, e.g. "V4 | Brand Fund | Central | CO30 | Performance Max"
-  out = out.replace(/\s*\|\s*(corporate|franchise|lbf)\s*$/i, '').trim();
+  out = out.replace(/(?:\s*\|\s*|\s+)(corporate|franchise|lbf)\s*$/i, '').trim();
   // 3. Tidy any dangling separator
   out = out.replace(/\s*\|\s*$/, '').trim();
   return out;
