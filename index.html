@@ -907,7 +907,7 @@
     <!-- BUDGET SIMULATION — 28-DAY AVG OPPORTUNITY TABLE -->
     <div class="table-card" id="simCard" style="display:none">
       <div class="table-header-row">
-        <div class="table-title">Recommended Additional Spend &mdash; 56-Day Average</div>
+        <div class="table-title">Recommended Additional Spend &mdash; 84-Day Average</div>
         <input type="text" class="table-search" id="simSearch" placeholder="Search site or region&hellip;" oninput="renderSimTable()">
       </div>
       <div class="sim-summary" id="simSummary"></div>
@@ -1182,14 +1182,14 @@ function initDashboard() {
 /* ================================================================
    BUDGET SIMULATION — 28-DAY AVERAGE OPPORTUNITY TABLE
    Source: Google Ads budget simulator export,
-   "LBF PMax Addl. Spend Rec. (56-Day Avg)" tab.
+   "LBF PMax Addl. Spend Rec. (84-Day Avg)" tab.
 ================================================================ */
 // Referenced by TAB NAME rather than gid: the name is stable in the Ads
-// script (SITE_SHEET_AVG56_NAME), whereas a gid changes if the tab is ever
+// script (SITE_SHEET_AVG84_NAME), whereas a gid changes if the tab is ever
 // deleted and recreated. Swap the sheet= value to switch lookbacks, e.g.
 // "…(14-Day Avg)", "…(21-Day Avg)", "…(28-Day Avg)".
-var SIM_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&headers=1&sheet=LBF+PMax+Addl.+Spend+Rec.+(56-Day+Avg)';
-var SIM_LOOKBACK_DAYS = 56;  // used in the note under the table
+var SIM_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&headers=1&sheet=LBF+PMax+Addl.+Spend+Rec.+(84-Day+Avg)';
+var SIM_LOOKBACK_DAYS = 84;  // used in the note under the table
 var SIM_CAP_TARGET = 500;    // STORE_VISIT_SPEND_CAP_TARGET in the Ads script
 var SIM_CPV_TARGET = 7.00;   // CPA_THRESHOLD 3.50 x2 (Franchise Partner halving convention) — keep in sync with the Ads script
 var SIM_DAYS_PER_MONTH = 30.4;
