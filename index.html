@@ -681,6 +681,43 @@
       background: #fff7f7 !important;
     }
 
+    /* ── BUDGET PACING TABLE ─────────────────────────────────── */
+    .pace-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pace-select {
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--mid-gray);
+      border-radius: 8px;
+      background: white;
+      outline: none;
+      cursor: pointer;
+    }
+    .pace-select:focus { border-color: var(--red); }
+    .pace-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 2px 9px;
+      white-space: nowrap;
+      letter-spacing: .3px;
+    }
+    .pace-ok    { background: #E6F4EA; color: #1B6B35; }
+    .pace-under { background: #FFF1D6; color: #8A5200; }
+    .pace-over  { background: #FDECEE; color: #A3121F; }
+    .pace-na    { background: var(--gray); color: var(--text-gray); }
+    td.pace-gap-high { color: #A3121F; font-weight: 700; }
+    td.pace-gap-low  { color: #8A5200; font-weight: 700; }
+    .pace-stale {
+      background: #FFF1D6;
+      color: #8A5200;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
     /* ── EXPAND / COLLAPSE ───────────────────────────────────── */
     .expand-wrap { margin-top: 14px; text-align: center; }
     .expand-btn {
@@ -931,6 +968,45 @@
       <div class="sim-note" id="simNote"></div>
     </div>
 
+    <!-- BUDGET PACING — CURRENT VS NEEDED DAILY SPEND -->
+    <div class="table-card" id="paceCard" style="display:none">
+      <div class="table-header-row" style="flex-wrap:wrap; gap:10px">
+        <div class="table-title">Budget Pacing &mdash; Current vs. Needed Daily Spend</div>
+        <div class="pace-controls">
+          <select class="pace-select" id="paceFilter" onchange="paceExpanded=false; renderPaceTable()">
+            <option value="all">All sites</option>
+            <option value="off">Off pace (more than $2.00 from needed)</option>
+            <option value="Under">Projected under budget</option>
+            <option value="Over">Projected over budget</option>
+            <option value="On track">On track</option>
+          </select>
+          <input type="text" class="table-search" id="paceSearch" placeholder="Search site or region&hellip;" oninput="renderPaceTable()">
+        </div>
+      </div>
+      <div class="pace-stale" id="paceStale" style="display:none"></div>
+      <div class="sim-summary" id="paceSummary"></div>
+      <table id="paceTable">
+        <thead>
+          <tr>
+            <th onclick="sortPaceBy('siteId')">Site ID</th>
+            <th onclick="sortPaceBy('region')">Region</th>
+            <th onclick="sortPaceBy('total')" style="text-align:right">Total Budget</th>
+            <th onclick="sortPaceBy('spend')" style="text-align:right">Spend To Date</th>
+            <th onclick="sortPaceBy('cur')" style="text-align:right">Current Daily Budget</th>
+            <th onclick="sortPaceBy('need')" style="text-align:right">Needed Daily Spend</th>
+            <th onclick="sortPaceBy('gapAbs')" style="text-align:right">Daily Gap</th>
+            <th onclick="sortPaceBy('proj')" style="text-align:right">Projected Month-End</th>
+            <th onclick="sortPaceBy('projPct')" style="text-align:right">Projected % of Budget</th>
+            <th onclick="sortPaceBy('status')">Status</th>
+          </tr>
+        </thead>
+        <tbody id="paceBody"></tbody>
+      </table>
+      <div class="table-footer" id="paceFooter"></div>
+      <div class="expand-wrap" id="paceExpandWrap"></div>
+      <div class="sim-note" id="paceNote"></div>
+    </div>
+
   </div><!-- /dashboard -->
 </div><!-- /container -->
 
@@ -1178,6 +1254,7 @@ function initDashboard() {
 
   applyFilters();
   loadSimData();
+  loadPaceData();
 }
 
 
@@ -1431,6 +1508,239 @@ function renderSimTable() {
 }
 
 /* ================================================================
+   BUDGET PACING — CURRENT VS NEEDED DAILY SPEND
+   Source: "Budget Tracker Feed" tab of the budget simulator sheet,
+   written each morning by the Google Ads "Budget Change Accuracy" script.
+   Needed Daily Spend = (Total Budget - Spend To Date) / Days Left.
+================================================================ */
+var PACE_CSV_URL = 'https://docs.google.com/spreadsheets/d/1qec_c9vZUX0XexyWEa4yAAn_4bWSaX4KUAjlpnUR7N8/gviz/tq?tqx=out:csv&headers=1&sheet=Budget+Tracker+Feed';
+var PACE_TOLERANCE = 2.00;   // a site is "off pace" when |current - needed| is more than this ($/day)
+var paceData = [];
+var paceAsOf = '';
+var paceExpanded = false;
+var paceSortCol = 'gapAbs', paceSortDir = -1;
+
+// "$1,250.00" / "99.6%" / "" -> number or null (blank stays blank, never 0)
+function paceNum(v) {
+  if (v === null || v === undefined) return null;
+  var s = String(v).replace(/[$,%\s]/g, '');
+  if (s === '') return null;
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function loadPaceData() {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 10000);
+  fetch(PACE_CSV_URL, { signal: ctrl.signal })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(txt) {
+      clearTimeout(timer);
+      var parsed = Papa.parse(txt, { header: true, skipEmptyLines: true });
+      var f = parsed.meta && parsed.meta.fields || [];
+      // Guard: a missing tab can come back as some other sheet entirely.
+      if (f.indexOf('Site ID') === -1 || f.indexOf('Current Daily Budget') === -1 ||
+          f.indexOf('Needed Daily Spend') === -1) throw new Error('feed tab not found');
+      paceData = parsed.data.map(function(r) {
+        var cur = paceNum(r['Current Daily Budget']);
+        var need = paceNum(r['Needed Daily Spend']);
+        var gap = (cur !== null && need !== null) ? Math.round((cur - need) * 100) / 100 : null;
+        return {
+          siteId: (r['Site ID'] || '').trim(),
+          region: (r['Region'] || '').trim(),
+          total:  paceNum(r['Total Budget']),
+          spend:  paceNum(r['Spend To Date']),
+          cur:    cur,
+          need:   need,
+          gap:    gap,
+          gapAbs: gap === null ? null : Math.abs(gap),
+          proj:   paceNum(r['Projected Month-End']),
+          projPct: paceNum(r['Projected % of Budget']),
+          status: (r['Status'] || '').trim(),
+          daysLeft: paceNum(r['Days Left']),
+          asOf:   (r['As Of'] || '').trim()
+        };
+      }).filter(function(r) {
+        // Site ID pattern also drops any total / blank rows.
+        return /^[A-Z]{2,3}\d{2,4}$/.test(r.siteId);
+      });
+      paceData.forEach(function(r) { if (r.asOf && r.asOf > paceAsOf) paceAsOf = r.asOf; });
+      if (paceData.length) {
+        document.getElementById('paceCard').style.display = 'block';
+        renderPaceTable();
+      }
+    })
+    .catch(function(e) {
+      clearTimeout(timer);
+      document.getElementById('paceCard').style.display = 'block';
+      document.getElementById('paceSummary').style.display = 'none';
+      document.getElementById('paceBody').innerHTML =
+        '<tr><td colspan="10" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
+        'Could not load budget pacing data (' + esc(e.message || 'network error') + ').<br>' +
+        'The simulator sheet must be reachable cross-origin. If this persists, use ' +
+        'File &rarr; Share &rarr; Publish to web on the &ldquo;Budget Tracker Feed&rdquo; ' +
+        'tab as CSV, then set PACE_CSV_URL to that published link.</td></tr>';
+    });
+}
+
+function sortPaceBy(col) {
+  if (paceSortCol === col) paceSortDir *= -1;
+  else { paceSortCol = col; paceSortDir = (col === 'siteId' || col === 'region' || col === 'status') ? 1 : -1; }
+  renderPaceTable();
+}
+
+function paceMoney(n) { return n === null ? '&mdash;' : (n < 0 ? '&minus;$' + fmt$(Math.abs(n)) : '$' + fmt$(n)); }
+
+function renderPaceTable() {
+  if (!paceData.length) return;
+  var q = (document.getElementById('paceSearch').value || '').toLowerCase();
+  var pf = document.getElementById('paceFilter').value;
+  var accEl = document.getElementById('filterAccount');
+  var rmcEl = document.getElementById('filterRMC');
+  var acc = accEl ? accEl.value : 'all';
+  var rmc = rmcEl ? rmcEl.value : 'all';
+  var accRegion = acc !== 'all' ? shortName(acc) : null;
+  var rmcSites = (rmc !== 'all' && typeof RMC_SITES !== 'undefined') ? RMC_SITES[rmc] : null;
+
+  var rows = paceData.filter(function(r) {
+    if (accRegion && r.region.toLowerCase() !== accRegion.toLowerCase()) return false;
+    if (rmcSites && rmcSites.indexOf(r.siteId) === -1) return false;
+    if (q && r.siteId.toLowerCase().indexOf(q) === -1 && r.region.toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+
+  // Summary counts reflect the region / RMC / search scope, before the status dropdown
+  var nOff = 0, nUnder = 0, nOver = 0, nOn = 0, tCur = 0, tNeed = 0, tSpend = 0, tTotal = 0, tProj = 0;
+  rows.forEach(function(r) {
+    if (r.gapAbs !== null && r.gapAbs > PACE_TOLERANCE + 1e-9) nOff++;
+    if (r.status === 'Under') nUnder++;
+    else if (r.status === 'Over') nOver++;
+    else if (r.status === 'On track') nOn++;
+  });
+
+  var shown = rows.filter(function(r) {
+    if (pf === 'off') return r.gapAbs !== null && r.gapAbs > PACE_TOLERANCE + 1e-9;
+    if (pf !== 'all') return r.status === pf;
+    return true;
+  });
+
+  shown.forEach(function(r) {
+    if (r.cur !== null)   tCur   += r.cur;
+    if (r.need !== null)  tNeed  += r.need;
+    if (r.spend !== null) tSpend += r.spend;
+    if (r.total !== null) tTotal += r.total;
+    if (r.proj !== null)  tProj  += r.proj;
+  });
+
+  shown = shown.slice().sort(function(a, b) {
+    var va = a[paceSortCol], vb = b[paceSortCol];
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return paceSortDir * (va - vb);
+    return paceSortDir * String(va).localeCompare(String(vb));
+  });
+
+  // Sort arrows — scoped to this table so the other tables are untouched
+  var paceThs = document.querySelectorAll('#paceTable thead th');
+  var order = ['siteId', 'region', 'total', 'spend', 'cur', 'need', 'gapAbs', 'proj', 'projPct', 'status'];
+  for (var i = 0; i < paceThs.length; i++) {
+    paceThs[i].classList.remove('sorted-asc', 'sorted-desc');
+    if (order[i] === paceSortCol) paceThs[i].classList.add(paceSortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  }
+
+  var display = paceExpanded ? shown : shown.slice(0, COLLAPSED_ROWS);
+  var html = '';
+  display.forEach(function(r) {
+    var gapTxt = '&mdash;', gapCls = '';
+    if (r.gap !== null) {
+      gapTxt = (r.gap > 0 ? '+' : r.gap < 0 ? '&minus;' : '') + '$' + fmt$(Math.abs(r.gap));
+      if (r.gapAbs > PACE_TOLERANCE + 1e-9) gapCls = r.gap > 0 ? ' pace-gap-high' : ' pace-gap-low';
+    }
+    var gapTitle = '';
+    if (gapCls === ' pace-gap-high') gapTitle = 'Daily budget is above what is needed to finish the month on plan';
+    else if (gapCls === ' pace-gap-low') gapTitle = 'Daily budget is below what is needed to finish the month on plan';
+    var badge = r.status === 'On track' ? 'pace-ok' : r.status === 'Under' ? 'pace-under' : r.status === 'Over' ? 'pace-over' : 'pace-na';
+    html += '<tr>' +
+      '<td>' + esc(r.siteId) + '</td>' +
+      '<td>' + esc(r.region) + '</td>' +
+      '<td class="num">' + paceMoney(r.total) + '</td>' +
+      '<td class="num">' + paceMoney(r.spend) + '</td>' +
+      '<td class="num">' + paceMoney(r.cur) + '</td>' +
+      '<td class="num" style="font-weight:700">' + paceMoney(r.need) + '</td>' +
+      '<td class="num' + gapCls + '"' + (gapTitle ? ' title="' + gapTitle + '"' : '') + '>' + gapTxt + '</td>' +
+      '<td class="num">' + paceMoney(r.proj) + '</td>' +
+      '<td class="num">' + (r.projPct === null ? '&mdash;' : r.projPct.toFixed(1) + '%') + '</td>' +
+      '<td><span class="pace-badge ' + badge + '">' + esc(r.status || 'n/a') + '</span></td>' +
+      '</tr>';
+  });
+
+  if (!shown.length) {
+    html = '<tr><td colspan="10" style="padding:20px; color:var(--text-gray)">No sites match the current filters.</td></tr>';
+  } else {
+    html += '<tr class="sim-total">' +
+      '<td>Total</td><td>' + numFmt(shown.length) + ' sites</td>' +
+      '<td class="num">$' + fmt$(tTotal) + '</td>' +
+      '<td class="num">$' + fmt$(tSpend) + '</td>' +
+      '<td class="num">$' + fmt$(tCur) + '</td>' +
+      '<td class="num">$' + fmt$(tNeed) + '</td>' +
+      '<td class="num">' + ((tCur - tNeed) >= 0 ? '+' : '&minus;') + '$' + fmt$(Math.abs(tCur - tNeed)) + '</td>' +
+      '<td class="num">$' + fmt$(tProj) + '</td>' +
+      '<td class="num">' + (tTotal > 0 ? (tProj / tTotal * 100).toFixed(1) + '%' : '&mdash;') + '</td>' +
+      '<td></td></tr>';
+  }
+  document.getElementById('paceBody').innerHTML = html;
+
+  var daysLeft = null;
+  paceData.forEach(function(r) { if (r.daysLeft !== null) daysLeft = r.daysLeft; });
+  document.getElementById('paceSummary').style.display = '';
+  document.getElementById('paceSummary').innerHTML =
+    '<div><div class="sim-stat-label">Sites</div><div class="sim-stat-value">' + numFmt(rows.length) + '</div></div>' +
+    '<div><div class="sim-stat-label">Off pace (&gt; $' + PACE_TOLERANCE.toFixed(2) + ')</div><div class="sim-stat-value">' + numFmt(nOff) + '</div></div>' +
+    '<div><div class="sim-stat-label">Under</div><div class="sim-stat-value">' + numFmt(nUnder) + '</div></div>' +
+    '<div><div class="sim-stat-label">Over</div><div class="sim-stat-value">' + numFmt(nOver) + '</div></div>' +
+    '<div><div class="sim-stat-label">On track</div><div class="sim-stat-value">' + numFmt(nOn) + '</div></div>' +
+    '<div><div class="sim-stat-label">Days left</div><div class="sim-stat-value">' + (daysLeft === null ? '&mdash;' : numFmt(daysLeft)) + '</div></div>' +
+    '<div><div class="sim-stat-label">As of</div><div class="sim-stat-value">' + (paceAsOf ? esc(simDateLabel(paceAsOf)) : '&mdash;') + '</div></div>';
+
+  // Stale-data warning: the feed is rewritten every morning
+  var staleEl = document.getElementById('paceStale');
+  var ageDays = null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(paceAsOf || '');
+  if (m) {
+    var asOfUtc = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+    var now = new Date();
+    ageDays = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - asOfUtc) / 86400000);
+  }
+  if (ageDays !== null && ageDays >= 2) {
+    staleEl.style.display = 'block';
+    staleEl.textContent = 'This pacing data was last refreshed ' + simDateLabel(paceAsOf) + ' (' + ageDays + ' days ago). The daily update may not have run.';
+  } else {
+    staleEl.style.display = 'none';
+  }
+
+  document.getElementById('paceFooter').textContent =
+    'Showing ' + display.length + ' of ' + shown.length + ' matching sites (' +
+    paceData.length + ' total) — ' + scopeLabel({ ignoreMonths: true });
+
+  renderExpandBtn('paceExpandWrap', paceExpanded, shown.length, display.length,
+                  'togglePaceExpand', 'sites');
+
+  document.getElementById('paceNote').innerHTML =
+    '<strong>Needed Daily Spend</strong> = (Total Budget &minus; Spend To Date) &divide; Days Left, using Google Ads spend through yesterday. ' +
+    '<strong>Daily Gap</strong> is Current Daily Budget minus Needed Daily Spend: a plus means the daily budget is higher than needed to finish the month on plan, ' +
+    'a minus means it is lower. A site is flagged when the gap is more than $' + PACE_TOLERANCE.toFixed(2) + ' either way, and rows are sorted with the biggest gaps first. ' +
+    '<strong>Status</strong> compares projected month-end spend to the total budget: Under below 90%, Over above 110%. ' +
+    'Google can spend up to 2&times; a campaign&rsquo;s daily budget on any single day, so month-end spend is capped at roughly 30.4&times; the daily budget rather than being exact each day. ' +
+    'This table is rewritten each morning' + (paceAsOf ? ' (last update ' + esc(simDateLabel(paceAsOf)) + ')' : '') + ', so budget changes made during the day appear the next morning.';
+}
+
+function togglePaceExpand() { paceExpanded = !paceExpanded; renderPaceTable(); }
+
+/* ================================================================
    FILTERS
 ================================================================ */
 function applyFilters() {
@@ -1459,6 +1769,7 @@ function applyFilters() {
   updateCharts();
   renderTable();
   renderSimTable();
+  renderPaceTable();
 }
 
 function resetFilters() {
