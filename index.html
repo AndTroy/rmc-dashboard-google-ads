@@ -1276,6 +1276,7 @@ var SIM_DAYS_PER_MONTH = 30.4;
 // for accuracy yet. While false, those columns, their summary stats and the
 // related note text are hidden. Flip to true to show them again.
 var SIM_SHOW_ESTIMATES = false;
+var SIM_MIN_ADDL = 300;   // keep in sync with MIN_ADDITIONAL_SPEND in the Campaign Budget Simulator script
 var simData = [];
 // Change history written by the Ads simulator script: one row each time a
 // site's recommended additional spend moves (plus a baseline row per site).
@@ -1490,7 +1491,7 @@ function renderSimTable() {
 
   var note = 'Projected from the Google Ads budget simulator, day-weight-averaged over a trailing ' + SIM_LOOKBACK_DAYS + '-day lookback, ' +
     'and scaled to a full month assuming performance holds at that spend level. ' +
-    'Recommendations are rounded <em>up</em> to the nearest $50 with a $50 minimum, so every listed site shows at least $50. ' +
+    'Recommendations are rounded <em>up</em> to the nearest $50 with a $' + SIM_MIN_ADDL + ' minimum, so every listed site shows at least $' + SIM_MIN_ADDL + '. ' +
     'Predicted visit gains above each site\'s current budget are discounted to match what past budget changes actually delivered, so recommendations are more conservative than the raw simulator output. The discount is re-measured automatically as more budget changes are tracked.';
   if (SIM_SHOW_ESTIMATES && capped) {
     note += ' ' + capped + ' site' + (capped === 1 ? '' : 's') + ' ' +
