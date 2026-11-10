@@ -1007,6 +1007,39 @@
       <div class="sim-note" id="paceNote"></div>
     </div>
 
+
+    <!-- META — LOCAL FACEBOOK / INSTAGRAM PERFORMANCE BY SITE -->
+    <div class="table-card" id="metaCard" style="display:none">
+      <div class="table-header-row" style="flex-wrap:wrap; gap:10px">
+        <div class="table-title">Meta (Facebook &amp; Instagram) &mdash; Local Campaign Performance</div>
+        <div class="pace-controls">
+          <input type="text" class="table-search" id="metaSearch" placeholder="Search site or region&hellip;" oninput="metaExpanded=false; renderMetaTable()">
+        </div>
+      </div>
+      <div class="pace-stale" id="metaStale" style="display:none"></div>
+      <div class="sim-summary" id="metaSummary"></div>
+      <table id="metaTable">
+        <thead>
+          <tr>
+            <th onclick="sortMetaBy('siteId')">Site ID</th>
+            <th onclick="sortMetaBy('region')">Region</th>
+            <th onclick="sortMetaBy('camps')" style="text-align:right">Campaigns</th>
+            <th onclick="sortMetaBy('spend')" style="text-align:right">Spend</th>
+            <th onclick="sortMetaBy('imps')" style="text-align:right">Impressions</th>
+            <th onclick="sortMetaBy('clicks')" style="text-align:right">Link Clicks</th>
+            <th onclick="sortMetaBy('cpm')" style="text-align:right">CPM</th>
+            <th onclick="sortMetaBy('ctr')" style="text-align:right">Link CTR</th>
+            <th onclick="sortMetaBy('splitPct')" style="text-align:right" title="Share of this site's Meta spend that comes from campaigns covering several sites, split evenly across them">% From Split Campaigns</th>
+          </tr>
+        </thead>
+        <tbody id="metaBody"></tbody>
+      </table>
+      <div class="table-footer" id="metaFooter"></div>
+      <div class="expand-wrap" id="metaExpandWrap"></div>
+      <div id="metaNatWrap"></div>
+      <div class="sim-note" id="metaNote"></div>
+    </div>
+
   </div><!-- /dashboard -->
 </div><!-- /container -->
 
@@ -1255,6 +1288,7 @@ function initDashboard() {
   applyFilters();
   loadSimData();
   loadPaceData();
+  loadMetaData();
 }
 
 
@@ -1328,6 +1362,7 @@ function loadSimData() {
         document.getElementById('simCard').style.display = 'block';
         renderSimTable();
         loadSimHistory();
+        renderMetaTable();
       }
     })
     .catch(function(e) {
@@ -1572,6 +1607,7 @@ function loadPaceData() {
       if (paceData.length) {
         document.getElementById('paceCard').style.display = 'block';
         renderPaceTable();
+        renderMetaTable();
       }
     })
     .catch(function(e) {
@@ -1741,6 +1777,272 @@ function renderPaceTable() {
 
 function togglePaceExpand() { paceExpanded = !paceExpanded; renderPaceTable(); }
 
+
+/* ================================================================
+   META (FACEBOOK / INSTAGRAM) — LOCAL CAMPAIGN PERFORMANCE BY SITE
+   Source: "Meta Performance" tab of the "Meta Performance Feed" sheet,
+   written each morning by the Google Ads script "Meta Performance Feed".
+   Campaigns that cover several sites are split EVENLY across those sites by
+   the script (labelled "Split N"); campaigns with no site ID are "NATIONAL".
+   Meta objectives differ from Google's, so this card shows delivery metrics only
+   (spend, impressions, link clicks, CPM, link CTR). It is kept out of the
+   store-visit / cost-per-visit numbers. Reach is not summed because it is not
+   additive across months.
+================================================================ */
+var META_CSV_URL = 'https://docs.google.com/spreadsheets/d/1baKamn0v1sluXkgT3Ty_m00hROJV4s7JcvGf2gGSwz0/gviz/tq?tqx=out:csv&headers=1&sheet=Meta+Performance';
+var metaData = [];        // site rows
+var metaNational = [];    // NATIONAL rows
+var metaNonUsd = 0;       // rows skipped because the account is not in USD
+var metaPulledAt = '';
+var metaExpanded = false;
+var metaSortCol = 'spend', metaSortDir = -1;
+
+function loadMetaData() {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 15000);
+  fetch(META_CSV_URL, { signal: ctrl.signal })
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(txt) {
+      clearTimeout(timer);
+      var parsed = Papa.parse(txt, { header: true, skipEmptyLines: true });
+      var f = parsed.meta && parsed.meta.fields || [];
+      // Guard: a missing tab can come back as some other sheet entirely.
+      if (f.indexOf('Site ID') === -1 || f.indexOf('Spend') === -1 ||
+          f.indexOf('Impressions') === -1 || f.indexOf('Allocation') === -1) throw new Error('feed tab not found');
+      metaData = []; metaNational = []; metaNonUsd = 0; metaPulledAt = '';
+      parsed.data.forEach(function(r) {
+        var sid = (r['Site ID'] || '').trim();
+        var isSite = /^[A-Z]{2,3}\d{2,4}$/.test(sid);
+        if (!isSite && sid !== 'NATIONAL') return;
+        var cur = (r['Currency'] || '').trim().toUpperCase();
+        if (cur && cur !== 'USD') { metaNonUsd++; return; }
+        var row = {
+          month:  norm(r['Month']),
+          siteId: sid,
+          alloc:  (r['Allocation'] || '').trim(),
+          campId: (r['Campaign ID'] || '').trim(),
+          camp:   (r['Campaign Name'] || '').trim(),
+          jira:   (r['Jira Task'] || '').trim(),
+          spend:  paceNum(r['Spend']) || 0,
+          imps:   paceNum(r['Impressions']) || 0,
+          clicks: paceNum(r['Link Clicks']) || 0
+        };
+        var pulled = (r['Pulled At'] || '').trim();
+        if (pulled > metaPulledAt) metaPulledAt = pulled;
+        if (isSite) metaData.push(row); else metaNational.push(row);
+      });
+      if (metaData.length || metaNational.length) {
+        document.getElementById('metaCard').style.display = 'block';
+        renderMetaTable();
+      }
+    })
+    .catch(function(e) {
+      clearTimeout(timer);
+      document.getElementById('metaCard').style.display = 'block';
+      document.getElementById('metaSummary').style.display = 'none';
+      document.getElementById('metaBody').innerHTML =
+        '<tr><td colspan="9" style="padding:20px; color:var(--text-gray); line-height:1.7">' +
+        'Could not load Meta performance data (' + esc(e.message || 'network error') + ').<br>' +
+        'The Meta Performance Feed sheet must be shared as &ldquo;Anyone with the link: Viewer&rdquo;.</td></tr>';
+    });
+}
+
+function sortMetaBy(col) {
+  if (metaSortCol === col) metaSortDir *= -1;
+  else { metaSortCol = col; metaSortDir = (col === 'siteId' || col === 'region') ? 1 : -1; }
+  renderMetaTable();
+}
+
+// Region for a site, borrowed from the simulator / pacing feeds (the Meta feed carries no region).
+function metaRegionOf(siteId) {
+  var i, list = [paceData, simData];
+  for (var k = 0; k < list.length; k++) {
+    var arr = list[k] || [];
+    for (i = 0; i < arr.length; i++) if (arr[i].siteId === siteId && arr[i].region) return arr[i].region;
+  }
+  return '';
+}
+
+function toggleMetaExpand() { metaExpanded = !metaExpanded; renderMetaTable(); }
+
+function renderMetaTable() {
+  if (!metaData.length && !metaNational.length) return;
+  var q = (document.getElementById('metaSearch').value || '').toLowerCase();
+  var accEl = document.getElementById('filterAccount');
+  var rmcEl = document.getElementById('filterRMC');
+  var fromEl = document.getElementById('filterFrom');
+  var toEl = document.getElementById('filterTo');
+  var acc = accEl ? accEl.value : 'all';
+  var rmc = rmcEl ? rmcEl.value : 'all';
+  var from = fromEl && fromEl.value ? norm(fromEl.value) : '';
+  var to = toEl && toEl.value ? norm(toEl.value) : '';
+  var accRegion = acc !== 'all' ? shortName(acc).toLowerCase() : null;
+  var rmcSites = (rmc !== 'all' && typeof RMC_SITES !== 'undefined') ? RMC_SITES[rmc] : null;
+
+  // Region lookups once per render
+  var regionCache = {};
+  function regionOf(sid) {
+    if (!(sid in regionCache)) regionCache[sid] = metaRegionOf(sid);
+    return regionCache[sid];
+  }
+  function inMonths(r) { return (!from || r.month >= from) && (!to || r.month <= to); }
+
+  // ---- aggregate site rows ----
+  var by = {};
+  metaData.forEach(function(r) {
+    if (!inMonths(r)) return;
+    if (rmcSites && rmcSites.indexOf(r.siteId) === -1) return;
+    var region = regionOf(r.siteId);
+    if (accRegion && region.toLowerCase() !== accRegion) return;
+    if (q && r.siteId.toLowerCase().indexOf(q) === -1 && region.toLowerCase().indexOf(q) === -1) return;
+    var a = by[r.siteId] || (by[r.siteId] = { siteId: r.siteId, region: region, camps: {}, spend: 0, imps: 0, clicks: 0, splitSpend: 0 });
+    a.camps[r.campId || r.camp] = true;
+    a.spend += r.spend; a.imps += r.imps; a.clicks += r.clicks;
+    if (/^Split/i.test(r.alloc)) a.splitSpend += r.spend;
+  });
+  var rows = Object.keys(by).map(function(k) {
+    var a = by[k];
+    return {
+      siteId: a.siteId, region: a.region, camps: Object.keys(a.camps).length,
+      spend: a.spend, imps: a.imps, clicks: a.clicks,
+      cpm: a.imps > 0 ? a.spend / a.imps * 1000 : null,
+      ctr: a.imps > 0 ? a.clicks / a.imps * 100 : null,
+      splitPct: a.spend > 0 ? a.splitSpend / a.spend * 100 : null
+    };
+  });
+
+  rows = rows.filter(function(r) { return r.spend > 0 || r.imps > 0; });
+  var tSpend = 0, tImps = 0, tClicks = 0;
+  rows.forEach(function(r) { tSpend += r.spend; tImps += r.imps; tClicks += r.clicks; });
+  var tCpm = tImps > 0 ? tSpend / tImps * 1000 : null;
+  var tCtr = tImps > 0 ? tClicks / tImps * 100 : null;
+
+  rows.sort(function(a, b) {
+    var va = a[metaSortCol], vb = b[metaSortCol];
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === 'number' && typeof vb === 'number') return metaSortDir * (va - vb);
+    return metaSortDir * String(va).localeCompare(String(vb));
+  });
+
+  var order = ['siteId', 'region', 'camps', 'spend', 'imps', 'clicks', 'cpm', 'ctr', 'splitPct'];
+  var ths = document.querySelectorAll('#metaTable thead th');
+  for (var i = 0; i < ths.length; i++) {
+    ths[i].classList.remove('sorted-asc', 'sorted-desc');
+    if (order[i] === metaSortCol) ths[i].classList.add(metaSortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+  }
+
+  var display = metaExpanded ? rows : rows.slice(0, COLLAPSED_ROWS);
+  var html = '';
+  display.forEach(function(r) {
+    html += '<tr>' +
+      '<td>' + esc(r.siteId) + '</td>' +
+      '<td>' + esc(r.region || '—') + '</td>' +
+      '<td class="num">' + numFmt(r.camps) + '</td>' +
+      '<td class="num" style="font-weight:700">$' + fmt$(r.spend) + '</td>' +
+      '<td class="num">' + numFmt(Math.round(r.imps)) + '</td>' +
+      '<td class="num">' + numFmt(Math.round(r.clicks)) + '</td>' +
+      '<td class="num">' + (r.cpm === null ? '&mdash;' : '$' + fmt$(r.cpm)) + '</td>' +
+      '<td class="num">' + (r.ctr === null ? '&mdash;' : r.ctr.toFixed(2) + '%') + '</td>' +
+      '<td class="num">' + (r.splitPct === null ? '&mdash;' : (r.splitPct < 0.5 ? '0%' : r.splitPct.toFixed(0) + '%')) + '</td>' +
+      '</tr>';
+  });
+  if (!rows.length) {
+    html = '<tr><td colspan="9" style="padding:20px; color:var(--text-gray)">No Meta spend for the current filters.</td></tr>';
+  } else {
+    html += '<tr class="sim-total">' +
+      '<td>Total</td><td>' + numFmt(rows.length) + (rows.length === 1 ? ' site' : ' sites') + '</td><td></td>' +
+      '<td class="num">$' + fmt$(tSpend) + '</td>' +
+      '<td class="num">' + numFmt(Math.round(tImps)) + '</td>' +
+      '<td class="num">' + numFmt(Math.round(tClicks)) + '</td>' +
+      '<td class="num">' + (tCpm === null ? '&mdash;' : '$' + fmt$(tCpm)) + '</td>' +
+      '<td class="num">' + (tCtr === null ? '&mdash;' : tCtr.toFixed(2) + '%') + '</td>' +
+      '<td></td></tr>';
+  }
+  document.getElementById('metaBody').innerHTML = html;
+
+  document.getElementById('metaSummary').style.display = '';
+  document.getElementById('metaSummary').innerHTML =
+    '<div><div class="sim-stat-label">Sites with Meta spend</div><div class="sim-stat-value">' + numFmt(rows.length) + '</div></div>' +
+    '<div><div class="sim-stat-label">Spend</div><div class="sim-stat-value">$' + fmt$(tSpend) + '</div></div>' +
+    '<div><div class="sim-stat-label">Impressions</div><div class="sim-stat-value">' + numFmt(Math.round(tImps)) + '</div></div>' +
+    '<div><div class="sim-stat-label">CPM</div><div class="sim-stat-value">' + (tCpm === null ? '&mdash;' : '$' + fmt$(tCpm)) + '</div></div>' +
+    '<div><div class="sim-stat-label">Link CTR</div><div class="sim-stat-value">' + (tCtr === null ? '&mdash;' : tCtr.toFixed(2) + '%') + '</div></div>' +
+    '<div><div class="sim-stat-label">Last updated</div><div class="sim-stat-value">' + (metaPulledAt ? esc(metaPulledAt.slice(0, 10)) : '&mdash;') + '</div></div>';
+
+  // Stale-data warning: the feed is rewritten every morning
+  var staleEl = document.getElementById('metaStale');
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(metaPulledAt || '');
+  var ageDays = null;
+  if (m) {
+    var now = new Date();
+    ageDays = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 86400000);
+  }
+  if (ageDays !== null && ageDays >= 2) {
+    staleEl.style.display = 'block';
+    staleEl.textContent = 'This Meta data was last refreshed ' + metaPulledAt.slice(0, 10) + ' (' + ageDays + ' days ago). The daily update may not have run.';
+  } else {
+    staleEl.style.display = 'none';
+  }
+
+  document.getElementById('metaFooter').textContent =
+    'Showing ' + display.length + ' of ' + rows.length + ' sites with Meta spend — ' + scopeLabel();
+  renderExpandBtn('metaExpandWrap', metaExpanded, rows.length, display.length, 'toggleMetaExpand', 'sites');
+
+  // ---- national campaigns (no site ID): shown to everyone, month filter only ----
+  var nat = {};
+  metaNational.forEach(function(r) {
+    if (!inMonths(r)) return;
+    var k = r.campId || r.camp;
+    var a = nat[k] || (nat[k] = { camp: r.camp, jira: r.jira, spend: 0, imps: 0, clicks: 0 });
+    a.spend += r.spend; a.imps += r.imps; a.clicks += r.clicks;
+  });
+  var natRows = Object.keys(nat).map(function(k) { return nat[k]; })
+    .filter(function(a) { return a.spend > 0 || a.imps > 0; })
+    .sort(function(a, b) { return b.spend - a.spend; });
+  var natHtml = '';
+  if (natRows.length) {
+    var nS = 0, nI = 0, nC = 0;
+    natRows.forEach(function(a) { nS += a.spend; nI += a.imps; nC += a.clicks; });
+    natHtml = '<div style="margin-top:22px"><div class="table-title" style="font-size:14px; margin-bottom:8px">' +
+      'National &amp; regional campaigns (not tied to a single site)</div>' +
+      '<table id="metaNatTable"><thead><tr><th>Campaign</th><th>Jira Task</th>' +
+      '<th style="text-align:right">Spend</th><th style="text-align:right">Impressions</th>' +
+      '<th style="text-align:right">Link Clicks</th><th style="text-align:right">CPM</th>' +
+      '<th style="text-align:right">Link CTR</th></tr></thead><tbody>';
+    natRows.slice(0, 15).forEach(function(a) {
+      natHtml += '<tr><td>' + esc(a.camp) + '</td><td>' + esc(a.jira || '—') + '</td>' +
+        '<td class="num" style="font-weight:700">$' + fmt$(a.spend) + '</td>' +
+        '<td class="num">' + numFmt(Math.round(a.imps)) + '</td>' +
+        '<td class="num">' + numFmt(Math.round(a.clicks)) + '</td>' +
+        '<td class="num">' + (a.imps > 0 ? '$' + fmt$(a.spend / a.imps * 1000) : '&mdash;') + '</td>' +
+        '<td class="num">' + (a.imps > 0 ? (a.clicks / a.imps * 100).toFixed(2) + '%' : '&mdash;') + '</td></tr>';
+    });
+    natHtml += '<tr class="sim-total"><td>Total' + (natRows.length > 15 ? ' (all ' + natRows.length + ' campaigns)' : '') + '</td><td></td>' +
+      '<td class="num">$' + fmt$(nS) + '</td><td class="num">' + numFmt(Math.round(nI)) + '</td>' +
+      '<td class="num">' + numFmt(Math.round(nC)) + '</td>' +
+      '<td class="num">' + (nI > 0 ? '$' + fmt$(nS / nI * 1000) : '&mdash;') + '</td>' +
+      '<td class="num">' + (nI > 0 ? (nC / nI * 100).toFixed(2) + '%' : '&mdash;') + '</td></tr>' +
+      '</tbody></table></div>';
+  }
+  document.getElementById('metaNatWrap').innerHTML = natHtml;
+
+  document.getElementById('metaNote').innerHTML =
+    'Meta delivery numbers from the local Facebook and Instagram campaigns, by site and month. ' +
+    '<strong>Campaigns that cover several sites are split evenly across those sites</strong> (spend, impressions and clicks), so a site&rsquo;s figures for those campaigns are an allocation, not a measurement; ' +
+    'the last column shows how much of each site&rsquo;s spend comes from split campaigns. ' +
+    '<strong>CPM</strong> = spend per 1,000 impressions. <strong>Link CTR</strong> = link clicks &divide; impressions. ' +
+    'Meta campaigns use different objectives from Google Ads and have no store-visit signal, so they are not included in the store-visit or cost-per-visit figures elsewhere on this page. ' +
+    'National and regional campaigns (for example nationwide promotions and the regional Local Meta Campaigns) are not allocated to sites and ignore the Region and RMC filters. ' +
+    'Region comes from the budget feeds, so a site missing from them shows a dash and is hidden when a Region is selected. ' +
+    'This table is rewritten each morning' + (metaPulledAt ? ' (last update ' + esc(metaPulledAt.slice(0, 10)) + ')' : '') + '.' +
+    (metaNonUsd ? ' ' + metaNonUsd + ' rows from non-USD ad accounts are excluded.' : '');
+}
+
 /* ================================================================
    FILTERS
 ================================================================ */
@@ -1771,6 +2073,7 @@ function applyFilters() {
   renderTable();
   renderSimTable();
   renderPaceTable();
+  renderMetaTable();
 }
 
 function resetFilters() {
