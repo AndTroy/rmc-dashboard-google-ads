@@ -82,7 +82,7 @@
       font-weight: 500;
     }
 
-    #reloadBtn {
+    #reloadBtn, #pdfBtn, #refreshBtn {
       background: rgba(255,255,255,0.18);
       border: 1px solid rgba(255,255,255,0.35);
       color: white;
@@ -96,7 +96,7 @@
       transition: background 0.2s;
     }
 
-    #reloadBtn:hover { background: rgba(255,255,255,0.28); }
+    #reloadBtn:hover, #pdfBtn:hover, #refreshBtn:hover { background: rgba(255,255,255,0.28); }
 
     /* ── CONTAINER ───────────────────────────────────── */
     .container {
@@ -560,6 +560,79 @@
 
     .chat-send:hover { background: var(--dark-red); }
 
+
+    /* ── SECTION TABS ────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      margin: -8px 0 20px;
+      padding: 8px 0;
+      background: #f5f5f5;
+      position: sticky;
+      top: 64px;
+      z-index: 90;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-btn {
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-gray);
+      background: white;
+      border: 1px solid var(--mid-gray);
+      border-radius: 20px;
+      padding: 8px 18px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { border-color: var(--red); color: var(--red); }
+    .tab-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+      color: white;
+    }
+    .tab-btn:focus-visible { outline: 2px solid var(--dark-red); outline-offset: 2px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-empty {
+      background: white;
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-gray);
+      font-size: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── PDF EXPORT / PRINT ──────────────────────────── */
+    #printHeader { display: none; }
+    .img-for-print { display: none; }
+
+    @media print {
+      @page { size: letter landscape; margin: 0.5in; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: white; }
+      header, .filters-bar, .tab-bar, .chat-card, .tab-empty, .expand-wrap,
+      .table-search, .pace-controls, .summary-dismiss, #summaryCard { display: none !important; }
+      .container { max-width: none; padding: 0; }
+      #printHeader { display: block; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 3px solid var(--red); }
+      #printHeader .ph-brand { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--red); }
+      #printHeader .ph-title { font-size: 20px; font-weight: 800; margin: 2px 0 4px; }
+      #printHeader .ph-meta { font-size: 11px; color: var(--text-gray); line-height: 1.5; }
+      .table-card, .chart-card, .kpi-card { box-shadow: none !important; border: 1px solid var(--mid-gray); break-inside: auto; }
+      .chart-card, .kpi-card { break-inside: avoid; }
+      .charts-grid { break-inside: avoid; }
+      .chart-container canvas { display: none !important; }
+      .img-for-print { display: block; width: 100%; height: auto; }
+      table { font-size: 10px; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      th:hover { background: inherit; }
+      th.sorted-asc::after, th.sorted-desc::after { content: ''; }
+    }
+
     /* ── RESPONSIVE ──────────────────────────────────── */
     @media (max-width: 1100px) {
       .kpi-grid { grid-template-columns: repeat(3, 1fr); }
@@ -631,6 +704,17 @@
       transition: background 0.2s;
     }
     .summary-btn:hover { background: var(--red); }
+
+
+    /* ── SEASONALITY INDEX (provisional) ─────────────────────── */
+    .prov-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.5px; padding:2px 7px; border-radius:10px; background:#FFF3CD; color:#7a5b00; margin-left:8px; vertical-align:middle; }
+    .season-warn { font-size:11px; line-height:1.7; color:#5c4a00; background:#FFF9E1; border-left:3px solid #E0B400; padding:10px 14px; border-radius:6px; margin-bottom:16px; }
+    #seasonTable th, #seasonTable td { text-align:center; padding:8px 6px; white-space:nowrap; }
+    #seasonTable th:first-child, #seasonTable td:first-child { text-align:left; font-weight:600; }
+    #seasonTable td.s-hi { background:#E3F4E6; } #seasonTable td.s-lo { background:#FBE4E6; }
+    #seasonTable td.s-mid { background:#FAFAFA; } #seasonTable td.s-low { color:#888; font-style:italic; }
+    #seasonTable tr.s-nat td { border-top:2px solid var(--mid-gray); font-weight:600; }
+    .lowconf { color:#B07A00; font-weight:700; }
 
     /* ── BUDGET SIMULATION TABLE ─────────────────────────────── */
     #simTable.sim-hide-est .est-col { display: none; }
@@ -750,6 +834,7 @@
   </div>
   <div class="header-right">
     <span id="dataStatus">Loading data…</span>
+    <button id="pdfBtn" onclick="downloadPDF()" style="display:none" title="Save the current tab, with the filters applied, as a PDF">⤓ Download PDF</button>
     <button id="refreshBtn" onclick="autoLoadSheet()" style="display:none">↻ Refresh</button>
     <button id="reloadBtn" onclick="document.getElementById('fileInput').click()" style="display:none">↑ Upload CSV</button>
   </div>
@@ -818,6 +903,24 @@
       <button class="summary-btn" onclick="generateSummary()">✦ Summary</button>
       <button class="reset-btn" onclick="resetFilters()" style="align-self:flex-end">Reset</button>
     </div>
+
+    <!-- PRINT-ONLY HEADER (shown in the PDF) -->
+    <div id="printHeader">
+      <div class="ph-brand">Tommy's Express</div>
+      <div class="ph-title" id="phTitle">Google Ads Performance</div>
+      <div class="ph-meta" id="phMeta"></div>
+    </div>
+
+    <!-- SECTION TABS -->
+    <div class="tab-bar" id="tabBar" role="tablist" aria-label="Dashboard sections">
+      <button class="tab-btn active" role="tab" id="tabBtn-overview" data-tab="overview" aria-selected="true" onclick="showTab('overview')">Overview</button>
+      <button class="tab-btn" role="tab" id="tabBtn-recommended" data-tab="recommended" aria-selected="false" onclick="showTab('recommended')">Recommended Spend</button>
+      <button class="tab-btn" role="tab" id="tabBtn-budget" data-tab="budget" aria-selected="false" onclick="showTab('budget')">Budget Tracking</button>
+      <button class="tab-btn" role="tab" id="tabBtn-meta" data-tab="meta" aria-selected="false" onclick="showTab('meta')">Meta</button>
+    </div>
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab-panel active" id="tab-overview" data-tab="overview" role="tabpanel">
 
     <!-- SUMMARY CARD -->
     <div class="summary-card" id="summaryCard" style="display:none">
@@ -941,6 +1044,11 @@
       <div class="expand-wrap" id="tableExpandWrap"></div>
     </div>
 
+    </div><!-- /tab-overview -->
+
+    <!-- TAB: RECOMMENDED SPEND -->
+    <div class="tab-panel" id="tab-recommended" data-tab="recommended" role="tabpanel">
+
     <!-- BUDGET SIMULATION — 28-DAY AVG OPPORTUNITY TABLE -->
     <div class="table-card" id="simCard" style="display:none">
       <div class="table-header-row">
@@ -967,6 +1075,26 @@
       <div class="expand-wrap" id="simExpandWrap"></div>
       <div class="sim-note" id="simNote"></div>
     </div>
+
+
+    <!-- REGIONAL SEASONALITY INDEX (PROVISIONAL, display-only) -->
+    <div class="table-card" id="seasonCard" data-static="1">
+      <div class="table-header-row">
+        <div class="table-title">Regional Seasonality Index &mdash; Store Visits per Dollar <span class="prov-badge">PROVISIONAL</span></div>
+      </div>
+      <div class="season-warn"><strong>Read before using:</strong> this index is built from only about 22 months of data, so most calendar months have been seen once or twice. It is shown for context and is <strong>not</strong> applied to the recommended spend numbers. Months marked <span class="lowconf">&dagger;</span> are low confidence: they move a lot depending on how efficiency drift over time is modeled (Sep&ndash;Dec especially). The most dependable findings are that January is the weakest month everywhere, May&ndash;July is the strongest, and the Southwest and West winter dips are deeper than the Northeast&rsquo;s.</div>
+      <table id="seasonTable">
+        <thead><tr id="seasonHead"></tr></thead>
+        <tbody id="seasonBody"></tbody>
+      </table>
+      <div class="sim-note" id="seasonNote"></div>
+    </div>
+
+    <div class="tab-empty" style="display:none">This section is still loading or isn't available right now. Try &ldquo;Refresh&rdquo; in a moment.</div>
+    </div><!-- /tab-recommended -->
+
+    <!-- TAB: BUDGET TRACKING -->
+    <div class="tab-panel" id="tab-budget" data-tab="budget" role="tabpanel">
 
     <!-- BUDGET PACING — CURRENT VS NEEDED DAILY SPEND -->
     <div class="table-card" id="paceCard" style="display:none">
@@ -1008,6 +1136,12 @@
     </div>
 
 
+    <div class="tab-empty" style="display:none">This section is still loading or isn't available right now. Try &ldquo;Refresh&rdquo; in a moment.</div>
+    </div><!-- /tab-budget -->
+
+    <!-- TAB: META -->
+    <div class="tab-panel" id="tab-meta" data-tab="meta" role="tabpanel">
+
     <!-- META — LOCAL FACEBOOK / INSTAGRAM PERFORMANCE BY SITE -->
     <div class="table-card" id="metaCard" style="display:none">
       <div class="table-header-row" style="flex-wrap:wrap; gap:10px">
@@ -1039,6 +1173,9 @@
       <div id="metaNatWrap"></div>
       <div class="sim-note" id="metaNote"></div>
     </div>
+
+    <div class="tab-empty" style="display:none">This section is still loading or isn't available right now. Try &ldquo;Refresh&rdquo; in a moment.</div>
+    </div><!-- /tab-meta -->
 
   </div><!-- /dashboard -->
 </div><!-- /container -->
@@ -1217,6 +1354,7 @@ function initDashboard() {
   document.getElementById('dashboard').style.display     = 'block';
   document.getElementById('refreshBtn').style.display    = 'inline-block';
   document.getElementById('reloadBtn').style.display     = 'inline-block';
+  document.getElementById('pdfBtn').style.display        = 'inline-block';
 
   // Build filter options
   var accounts = unique(rawData, 'Account Name').sort();
@@ -3588,6 +3726,170 @@ function cleanCampaignName(name) {
 function round2(n) {
   return Math.round((n || 0) * 100) / 100;
 }
+
+/* ================================================================
+   SECTION TABS
+   Filters stay global; each tab just shows/hides a group of cards.
+   The tab is kept in the URL hash (#recommended, #budget, #meta) so
+   a link can open straight to a section.
+================================================================ */
+
+/* ================================================================
+   REGIONAL SEASONALITY INDEX (provisional, display-only)
+   Built 2026-11-13 from site-level store visits per dollar.
+   Not applied to any recommendation.
+================================================================ */
+var SEASON_INDEX = {"nat":[0.71,0.85,0.92,1.04,1.13,1.13,1.23,1.08,1.1,0.99,0.93,1.0],"regions":{"Central":{"idx":[0.71,0.94,0.88,1.01,1.18,1.16,1.26,1.06,1.12,0.98,0.87,0.96],"lo":[0.68,0.91,0.85,0.98,1.15,1.12,1.22,1.02,1.08,0.95,0.84,0.92],"hi":[0.76,0.98,0.92,1.05,1.23,1.2,1.3,1.1,1.17,1.02,0.91,1.01],"conf":"HMMMMMHHMMML","sites":40},"Midwest":{"idx":[0.72,0.93,0.9,0.98,1.17,1.17,1.3,1.08,1.14,0.95,0.82,0.99],"lo":[0.7,0.92,0.88,0.95,1.14,1.13,1.27,1.03,1.07,0.9,0.78,0.96],"hi":[0.75,0.96,0.93,1.01,1.2,1.21,1.35,1.12,1.18,0.99,0.85,1.02],"conf":"HLMMMMHHMMML","sites":81},"Northeast":{"idx":[0.75,0.87,0.92,1.14,1.06,1.04,1.11,1.03,1.08,1.0,0.96,1.11],"lo":[0.73,0.83,0.89,1.1,1.03,1.0,1.07,0.99,1.04,0.94,0.9,1.07],"hi":[0.78,0.93,0.96,1.18,1.1,1.09,1.14,1.07,1.14,1.06,1.01,1.15],"conf":"HLMMMHHHMMLL","sites":17},"Southeast":{"idx":[0.76,0.94,0.97,1.09,1.1,1.08,1.15,1.02,1.01,0.94,0.98,1.01],"lo":[0.73,0.91,0.95,1.05,1.08,1.06,1.12,1.0,0.97,0.92,0.95,0.98],"hi":[0.78,0.97,0.99,1.13,1.13,1.11,1.18,1.05,1.05,0.99,1.01,1.05],"conf":"HMLMMMHHMMLL","sites":67},"Southwest":{"idx":[0.67,0.76,0.89,0.99,1.12,1.16,1.33,1.21,1.13,1.02,0.95,0.98],"lo":[0.64,0.74,0.87,0.96,1.09,1.14,1.3,1.18,1.1,0.99,0.92,0.94],"hi":[0.7,0.79,0.91,1.02,1.16,1.2,1.37,1.25,1.17,1.07,0.98,1.01],"conf":"HMMMMMHHMMLL","sites":53},"West":{"idx":[0.67,0.7,0.96,1.02,1.16,1.16,1.25,1.11,1.1,1.04,1.02,0.99],"lo":[0.63,0.67,0.91,0.97,1.12,1.07,1.17,1.06,1.07,1.0,0.97,0.94],"hi":[0.72,0.79,1.02,1.08,1.19,1.22,1.32,1.18,1.14,1.07,1.05,1.05],"conf":"HMLMMMHHMMLL","sites":10}}};
+var SEASON_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function renderSeasonCard() {
+  var head = document.getElementById('seasonHead'), body = document.getElementById('seasonBody');
+  if (!head || !body) return;
+  head.innerHTML = '<th>Region</th><th>Sites</th>' + SEASON_MONTHS.map(function(m){ return '<th>' + m + '</th>'; }).join('');
+  function cell(v, lo, hi, conf) {
+    var cls = v >= 1.10 ? 's-hi' : (v <= 0.90 ? 's-lo' : 's-mid');
+    if (conf === 'L') cls += ' s-low';
+    var tip = 'Likely range ' + lo.toFixed(2) + '\u2013' + hi.toFixed(2) + (conf === 'L' ? ' (low confidence: sensitive to drift assumption)' : conf === 'M' ? ' (medium confidence)' : ' (higher confidence)');
+    return '<td class="' + cls + '" title="' + tip + '">' + v.toFixed(2) + (conf === 'L' ? '<span class="lowconf">&dagger;</span>' : '') + '</td>';
+  }
+  var rows = Object.keys(SEASON_INDEX.regions).map(function(r) {
+    var o = SEASON_INDEX.regions[r];
+    return '<tr><td>' + r + '</td><td>' + o.sites + '</td>' + o.idx.map(function(v, i){ return cell(v, o.lo[i], o.hi[i], o.conf.charAt(i)); }).join('') + '</tr>';
+  });
+  rows.push('<tr class="s-nat"><td>All regions</td><td>&ndash;</td>' + SEASON_INDEX.nat.map(function(v){ return cell(v, v, v, 'H').replace(/ title="[^"]*"/, ''); }).join('') + '</tr>');
+  body.innerHTML = rows.join('');
+  document.getElementById('seasonNote').innerHTML =
+    '<strong>How to read it:</strong> 1.00 is the region&rsquo;s own average month. 1.20 means that month typically returns about 20% more store visits per dollar than an average month; 0.80 means about 20% fewer. Hover a cell for its likely range.<br>' +
+    '<strong>How it was built:</strong> 4,608 site-months (Feb 2025 &ndash; Aug 2026) from the six Local Brand Fund accounts, in log store visits per dollar. Each site has its own baseline level, so site growth and site-to-site differences are removed. Spend level is controlled for (higher spend lowers efficiency; about &minus;0.47 elasticity), so the index reflects seasonality at constant spend. Sites in their first 3 months are excluded, newer sites get a ramp adjustment, and a year-level shift is allowed between the 2025 pull and 2026 data. Region month effects are lightly shrunk toward the all-region pattern. Likely ranges come from resampling sites 80 times and reflect sampling noise only; the &dagger; confidence flags reflect the larger model uncertainty.<br>' +
+    '<strong>Data limits:</strong> no 2024 data exists in these accounts (campaigns start Jan 2025). Jan 2025 (all regions) and Feb 2025 (Central, Southeast) were excluded as anomalous, and Sep&ndash;Nov 2026 were excluded as incomplete or still attributing. 2025 visits are halved biddable conversions; 2026 uses the dashboard&rsquo;s Store Visits. Revisit once a second full year of data is available. Seasonality here is store visits per dollar, not wash volume.';
+}
+renderSeasonCard();
+
+var TAB_IDS = ['overview', 'recommended', 'budget', 'meta'];
+var TAB_TITLES = {
+  overview: 'Overview',
+  recommended: 'Recommended Additional Spend',
+  budget: 'Budget Tracking',
+  meta: 'Meta (Facebook & Instagram)'
+};
+var activeTab = 'overview';
+
+function updateTabEmpty() {
+  TAB_IDS.forEach(function(id) {
+    var panel = document.getElementById('tab-' + id);
+    if (!panel) return;
+    var empty = panel.querySelector('.tab-empty');
+    if (!empty) return;
+    var cards = panel.querySelectorAll('.table-card');
+    var anyVisible = false;
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute('data-static')) continue;
+      if (cards[i].style.display !== 'none') { anyVisible = true; break; }
+    }
+    empty.style.display = anyVisible ? 'none' : 'block';
+  });
+}
+
+function showTab(id, noHash) {
+  if (TAB_IDS.indexOf(id) === -1) id = 'overview';
+  activeTab = id;
+  TAB_IDS.forEach(function(t) {
+    var panel = document.getElementById('tab-' + t);
+    var btn = document.getElementById('tabBtn-' + t);
+    var on = t === id;
+    if (panel) panel.classList.toggle('active', on);
+    if (btn) { btn.classList.toggle('active', on); btn.setAttribute('aria-selected', on ? 'true' : 'false'); }
+  });
+  if (!noHash) {
+    try { history.replaceState(null, '', id === 'overview' ? location.pathname + location.search : '#' + id); } catch (e) {}
+  }
+  updateTabEmpty();
+  // charts sized while hidden need a nudge when their tab comes back
+  if (id === 'overview') {
+    Object.keys(charts).forEach(function(k) { try { charts[k].resize(); } catch (e) {} });
+  }
+}
+
+(function initTabs() {
+  var start = (location.hash || '').replace('#', '');
+  if (TAB_IDS.indexOf(start) !== -1) showTab(start, true);
+  window.addEventListener('hashchange', function() {
+    var h = (location.hash || '').replace('#', '');
+    showTab(TAB_IDS.indexOf(h) !== -1 ? h : 'overview', true);
+  });
+  // cards are shown/hidden by their loaders; keep the "not available" notice in step
+  if (window.MutationObserver) {
+    var mo = new MutationObserver(updateTabEmpty);
+    TAB_IDS.forEach(function(id) {
+      var panel = document.getElementById('tab-' + id);
+      if (panel) mo.observe(panel, { attributes: true, attributeFilter: ['style'], subtree: true });
+    });
+  }
+})();
+
+/* ================================================================
+   PDF EXPORT
+   Prints the current tab with the current filters applied (the
+   browser's print dialog -> "Save as PDF"). Tables are expanded
+   for the print and put back afterwards; charts are swapped for
+   images so they print at the right size.
+================================================================ */
+var printRestore = null;
+
+function filterSummaryText() {
+  var parts = [];
+  var acc = document.getElementById('filterAccount').value;
+  var rmc = document.getElementById('filterRMC').value;
+  var from = document.getElementById('filterFrom').value;
+  var to = document.getElementById('filterTo').value;
+  var camps = getSelectedCampaigns();
+  parts.push('Region: ' + (acc === 'all' ? 'All' : shortName(acc)));
+  parts.push('RMC: ' + (rmc === 'all' ? 'All' : rmc));
+  if (from || to) parts.push('Months: ' + (from || '') + (from && to && from !== to ? ' to ' + to : ''));
+  if (camps.length) parts.push(camps.length + ' campaign' + (camps.length > 1 ? 's' : '') + ' selected');
+  return parts.join('  ·  ');
+}
+
+function downloadPDF() {
+  if (printRestore) return;
+  var saved = { t: tableExpanded, s: simExpanded, p: paceExpanded, m: metaExpanded };
+  var addedImgs = [];
+  printRestore = function() {
+    addedImgs.forEach(function(im) { if (im.parentNode) im.parentNode.removeChild(im); });
+    tableExpanded = saved.t; simExpanded = saved.s; paceExpanded = saved.p; metaExpanded = saved.m;
+    renderTable(); renderSimTable(); renderPaceTable(); renderMetaTable();
+    printRestore = null;
+  };
+
+  // show every row of the tables on the tab being printed
+  if (activeTab === 'overview') tableExpanded = true;
+  if (activeTab === 'recommended') simExpanded = true;
+  if (activeTab === 'budget') paceExpanded = true;
+  if (activeTab === 'meta') metaExpanded = true;
+  renderTable(); renderSimTable(); renderPaceTable(); renderMetaTable();
+
+  // charts -> images
+  if (activeTab === 'overview') {
+    var canvases = document.querySelectorAll('#tab-overview .chart-container canvas');
+    for (var i = 0; i < canvases.length; i++) {
+      try {
+        var im = document.createElement('img');
+        im.className = 'img-for-print';
+        im.src = canvases[i].toDataURL('image/png');
+        canvases[i].parentNode.appendChild(im);
+        addedImgs.push(im);
+      } catch (e) {}
+    }
+  }
+
+  document.getElementById('phTitle').textContent = 'Google Ads Performance — ' + TAB_TITLES[activeTab];
+  document.getElementById('phMeta').textContent =
+    filterSummaryText() + '\n' + 'Generated ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('phMeta').style.whiteSpace = 'pre-line';
+
+  setTimeout(function() { window.print(); }, 150);
+}
+window.addEventListener('afterprint', function() { if (printRestore) printRestore(); });
+
 </script>
 </body>
 </html>
