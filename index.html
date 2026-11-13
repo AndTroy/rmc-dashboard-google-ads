@@ -715,6 +715,10 @@
     #seasonTable td.s-mid { background:#FAFAFA; } #seasonTable td.s-low { color:#888; font-style:italic; }
     #seasonTable tr.s-nat td { border-top:2px solid var(--mid-gray); font-weight:600; }
     .lowconf { color:#B07A00; font-weight:700; }
+    .pol-link { font-size:11px; font-weight:600; color:var(--red); text-decoration:none; }
+    .pol-link:hover { text-decoration:underline; }
+    #polTable td, #polTable th { text-align:left; padding:8px 10px; vertical-align:top; }
+    #polTable td:first-child { white-space:nowrap; font-weight:600; }
 
     /* ── BUDGET SIMULATION TABLE ─────────────────────────────── */
     #simTable.sim-hide-est .est-col { display: none; }
@@ -1088,6 +1092,29 @@
         <tbody id="seasonBody"></tbody>
       </table>
       <div class="sim-note" id="seasonNote"></div>
+    </div>
+
+    <!-- POLITICAL AD CONTEXT (display-only) -->
+    <div class="table-card" id="politicalCard" data-static="1">
+      <div class="table-header-row">
+        <div class="table-title">Political Ad Season &mdash; Context for Fall Performance <span class="prov-badge">CONTEXT ONLY</span></div>
+        <a class="pol-link" href="https://adstransparency.google.com/?region=US" target="_blank" rel="noopener">Google Ads Transparency Center &#8599;</a>
+      </div>
+      <div class="season-warn">Political advertising can compete with us for the same ad inventory, especially in battleground states. This card is background to help explain fall results. It is <strong>not</strong> measured in our data and is <strong>not</strong> applied to the recommended spend numbers or the seasonality index.</div>
+      <table id="polTable">
+        <thead><tr><th>2026 date</th><th>Event</th><th>What to watch</th></tr></thead>
+        <tbody>
+          <tr><td>Spring &ndash; summer</td><td>State primaries</td><td>Spread across many states; political spend is usually lighter and more local than in the fall.</td></tr>
+          <tr><td>~Labor Day &ndash; Nov 3</td><td>General-election run-up</td><td>Peak window for political buying. Industry forecasts put the 2026 cycle at a record of roughly $11&ndash;12B across all media, so competition for inventory (including video/YouTube placements that Performance Max can serve on) may be higher than usual in contested states.</td></tr>
+          <tr><td>Nov 3</td><td>General election</td><td>Political spend generally drops off sharply afterward, so cost pressure should ease in most states.</td></tr>
+          <tr><td>Dec 1 &ndash; Dec 12</td><td>Runoffs: Georgia and Mississippi (Dec 1), Louisiana (Dec 12)</td><td>Pressure can linger in those states into December.</td></tr>
+        </tbody>
+      </table>
+      <div class="sim-note" id="polNote">
+        <strong>What our own data shows:</strong> store visits per dollar fell sharply from July to September/October 2026 in Central (0.40 &rarr; 0.21 / 0.19), Midwest (0.37 &rarr; 0.20 / 0.21), Southwest (0.38 &rarr; 0.19 / 0.21) and West (0.45 &rarr; 0.28 / 0.31), but much less in the Northeast and Southeast. These are raw, unadjusted ratios and the most recent months are still attributing, so the drop cannot be assigned to political ads, spend changes, or attribution lag. Sep&ndash;Oct 2026 were left out of the seasonality index for that reason.<br>
+        <strong>How to use this:</strong> when a region underperforms in the fall, check the Transparency Center (election ads, filter by state and date) for heavy election advertising in that region before changing spend. Once the fall months have fully attributed (about January 2027), compare Sep&ndash;Oct 2026 with Sep&ndash;Oct 2025 by region to see how much of the dip is political.<br>
+        <strong>Limits:</strong> the Transparency Center lists verified election advertisers and gives spend and impression ranges, not our auction costs, and it was not queried to build this card. Dates and the spend forecast come from public election calendars and industry reports (AdImpact via press coverage); verify before quoting externally.
+      </div>
     </div>
 
     <div class="tab-empty" style="display:none">This section is still loading or isn't available right now. Try &ldquo;Refresh&rdquo; in a moment.</div>
